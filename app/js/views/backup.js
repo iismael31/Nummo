@@ -86,7 +86,6 @@ function openCreateBackup() {
   const sheet = openSheet({
     title: 'Crear copia',
     tall: true,
-    focus: password,
     body: [
       h('p', { class: 'help' }, 'La copia se cifra con esta contraseña (distinta de tu PIN). Apúntala en un lugar seguro: sin ella no se puede restaurar.'),
       field('Contraseña de la copia', password),

@@ -78,7 +78,7 @@ function budgetsCard(look, derived) {
         label: 'Crear presupuesto', onClick: () => router.navigate('/mas/presupuestos'),
       }));
   }
-  return list(budgets.map((b) => budgetItem(b, look.categories.get(b.categoryId))));
+  return list(budgets.map((b) => budgetItem(b, look)));
 }
 
 export function statsView() {

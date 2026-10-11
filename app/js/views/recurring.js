@@ -14,6 +14,7 @@ import { ValidationError, LIMITS, MAX_INTERVAL } from '../core/model.js';
 import { todayISO } from '../core/dates.js';
 import { nextDate, isFinished, dueOccurrences, displayedNextDate, planRecurringUpdate } from '../core/recurring.js';
 import { selectableAccounts, selectableCategories } from './movement-form.js';
+import { openCategoryForm } from './categories.js';
 
 const TYPE_OPTIONS = [
   { value: 'expense', label: 'Gasto' },
@@ -145,10 +146,17 @@ export function openRecurringForm({ rule = null } = {}) {
         ]
         : h('p', { class: 'help' }, 'Primero crea una deuda en la pestaña Deudas.'));
     } else {
-      const categories = selectableCategories(state, draft.type, t?.categoryId);
+      const categories = selectableCategories(store.getState(), draft.type, t?.categoryId);
       if (!categories.some((c) => c.id === draft.categoryId)) draft.categoryId = null;
+      const createCategory = () => openCategoryForm({
+        kind: draft.type,
+        onCreated: (category) => {
+          draft.categoryId = category.id;
+          renderDynamic();
+        },
+      });
       replace(dynamic,
-        field('Categoría', categoryGrid(categories, draft.categoryId, (id) => { draft.categoryId = id; })),
+        field('Categoría', categoryGrid(categories, draft.categoryId, (id) => { draft.categoryId = id; }, { onCreate: createCategory })),
         field('Cuenta', chipPicker(accounts, draft.accountId, (id) => { draft.accountId = id; }, { label: 'Cuenta' })));
     }
   };
@@ -207,7 +215,6 @@ export function openRecurringForm({ rule = null } = {}) {
     title: editing ? 'Editar programado' : 'Nuevo programado',
     tall: true,
     primary: { label: 'Guardar', onClick: save },
-    focus: editing ? null : amount.input,
     body: [
       segmented(TYPE_OPTIONS, draft.type, (value) => { draft.type = value; renderDynamic(); }, { label: 'Tipo' }),
       amount.el,

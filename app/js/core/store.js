@@ -309,7 +309,7 @@ export function categoryUsage(id) {
   return {
     movements: s.movements.filter((m) => m.categoryId === id).length,
     recurring: s.recurring.filter((r) => r.template.categoryId === id).length,
-    budget: s.budgets.some((b) => b.categoryId === id),
+    budgets: s.budgets.filter((b) => b.categoryIds?.includes(id)).length,
   };
 }
 
@@ -339,7 +339,12 @@ export function deleteCategory(id, replacementId = null) {
     }
   }
   for (const r of s.recurring) if (r.template.categoryId === id) r.template.categoryId = replacement.id;
-  s.budgets = s.budgets.filter((b) => b.categoryId !== id);
+  // Sale de sus presupuestos; los que solo la tenían a ella desaparecen.
+  s.budgets = s.budgets.flatMap((b) => {
+    if (!b.categoryIds?.includes(id)) return [b];
+    const rest = b.categoryIds.filter((x) => x !== id);
+    return rest.length ? [{ ...b, categoryIds: rest }] : [];
+  });
   s.categories = s.categories.filter((c) => c.id !== id);
   reindex(s.categories);
   commit(...keys);
@@ -437,21 +442,36 @@ export function deleteDebt(id) {
 
 // --- Presupuestos -----------------------------------------------------------------------------
 
-/** Fija (o quita, con amount = null) el presupuesto mensual de una categoría o el total (null). */
-export function setBudget(categoryId, amount) {
+/**
+ * Crea o cambia un presupuesto. `categoryIds: null` es el total del mes (solo puede haber uno);
+ * si no, una o varias categorías de gasto (una categoría puede estar en varios presupuestos).
+ */
+export function saveBudget({ id = null, name = '', categoryIds, amount }) {
   const s = requireState();
-  if (categoryId !== null && mustFind(s.categories, categoryId, 'La categoría').kind !== 'expense') {
-    throw new ValidationError('Los presupuestos son para categorías de gasto.');
+  const current = id === null ? null : mustFind(s.budgets, id, 'El presupuesto');
+  if (categoryIds === null) {
+    if (s.budgets.some((b) => b.categoryIds === null && b !== current)) throw new ValidationError('Ya tienes un presupuesto total del mes.');
+  } else {
+    if (!categoryIds?.length) throw new ValidationError('Elige al menos una categoría.');
+    for (const categoryId of categoryIds) {
+      if (mustFind(s.categories, categoryId, 'La categoría').kind !== 'expense') throw new ValidationError('Los presupuestos son para categorías de gasto.');
+    }
   }
-  const existing = s.budgets.find((b) => b.categoryId === categoryId);
-  if (amount === null) {
-    if (existing) s.budgets = s.budgets.filter((b) => b !== existing);
-  } else if (existing) {
-    s.budgets[s.budgets.indexOf(existing)] = normalizeBudget({ ...existing, amount });
+  const next = normalizeBudget({ id: current?.id ?? newId(), name, categoryIds, amount });
+  if (current) {
+    s.budgets[s.budgets.indexOf(current)] = next;
   } else {
     ensureRoom(s.budgets, LIMITS.budgets, 'Has alcanzado el máximo de presupuestos.');
-    s.budgets.push(normalizeBudget({ id: newId(), categoryId, amount }));
+    s.budgets.push(next);
   }
+  commit(CORE_BUCKET);
+  return next;
+}
+
+export function deleteBudget(id) {
+  const s = requireState();
+  mustFind(s.budgets, id, 'El presupuesto');
+  s.budgets = s.budgets.filter((b) => b.id !== id);
   commit(CORE_BUCKET);
 }
 

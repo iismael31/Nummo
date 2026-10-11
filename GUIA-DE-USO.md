@@ -8,7 +8,7 @@
 - **Tus cuentas**: todas las que quieras (bancos, tarjetas, efectivo, ahorro…), cada una con su saldo.
 - **Transferencias** entre tus cuentas (por ejemplo, cuando sacas dinero del cajero).
 - **Deudas**: lo que **debes** (un préstamo, algo que te adelantó tu hermano…) y lo que **te deben**.
-- **Presupuestos** mensuales por categoría, con aviso cuando te acercas al límite.
+- **Presupuestos** mensuales de una o varias categorías, con aviso cuando te acercas al límite.
 - **Movimientos programados** que se apuntan solos: alquiler, nómina, suscripciones, cuotas…
 - **Análisis** con gráficas de en qué se te va el dinero y cómo evoluciona tu patrimonio.
 - **Temas**: modo claro, oscuro o automático, y el color de la app que tú elijas.
@@ -58,7 +58,7 @@ A partir de ahora, cada vez que abras la app te pedirá el PIN.
 1. Pulsa el botón azul **+** (abajo a la derecha).
 2. Elige **Gasto** o **Ingreso** arriba.
 3. Escribe el **importe** (vale con coma o con punto: 12,50 o 12.50).
-4. Toca la **categoría** y la **cuenta**.
+4. Toca la **categoría** y la **cuenta**. Si falta la categoría que necesitas, toca **Nueva** al final de la lista: la creas ahí mismo y queda elegida.
 5. Cambia la **fecha** si no es hoy (botones rápidos «Hoy» y «Ayer»).
 6. Si quieres, añade una **nota** (por ejemplo «Mercadona»).
 7. Pulsa **Guardar**. Si te equivocas, pulsa **Deshacer** en el aviso que aparece.
@@ -105,7 +105,7 @@ Dentro de cada deuda verás cuánto **te queda**, una barra de progreso y el his
 **Más → Presupuestos**:
 
 - **Total del mes**: un límite para todo lo que gastas.
-- **Por categoría**: por ejemplo, 300 € al mes en restaurantes.
+- **Por categorías**: un límite para una o varias categorías juntas. Por ejemplo, «Ocio» con Restaurantes y Cine, 150 € al mes. El nombre es opcional y una misma categoría puede estar en varios presupuestos.
 
 La barra se pone **ámbar** al llegar al 80 % y **roja** si te pasas. Los presupuestos en riesgo aparecen también en **Inicio**, y cada mes empiezan de cero.
 
@@ -168,11 +168,12 @@ Elige el archivo `nummo-copia-….json`, escribe su contraseña y confirma. Rest
 
 **Más → Copia de seguridad → Exportar a CSV** crea una hoja con todos tus movimientos. Ojo: ese archivo **no va cifrado**.
 
-### Seguridad: PIN y bloqueo automático
+### Seguridad: PIN, Face ID y bloqueo automático
 
 En **Más → Seguridad** puedes:
 
 - **Cambiar el PIN**: primero te pide el actual.
+- Activar **Desbloquear con Face ID** (o con tu huella en Android): te pide el PIN y luego Face ID para crear una «llave de acceso» de Nummo en el móvil. A partir de ahí, al abrir la app te pedirá Face ID; si falla o lo cancelas, escribes el PIN como siempre. **Cada 7 días te pedirá el PIN igualmente**, para que no lo olvides. Necesita iOS 18 o posterior; si tu móvil no lo permite, la opción no aparece.
 - Elegir el **bloqueo automático**: cuánto tiempo puede estar la app en segundo plano antes de volver a pedir el PIN (inmediatamente, 1, 5 o 15 minutos).
 - **Bloquearla ahora**.
 

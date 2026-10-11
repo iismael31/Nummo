@@ -47,7 +47,7 @@ test('finance: gastos por categoría y presupuestos', () => {
   assert.deepEqual(totalsByCategory(sampleState(), '2026-10'), [{ categoryId: 'catFunXXX', amount: 2000 }]);
   assert.deepEqual(totalsByCategory(sampleState(), '2026-10', 'income'), [{ categoryId: 'catSalary', amount: 200000 }]);
   const [total, fun] = budgetStatus(sampleState(), '2026-10');
-  assert.equal(total.categoryId, null, 'el presupuesto total va primero');
+  assert.equal(total.categoryIds, null, 'el presupuesto total va primero');
   assert.equal(total.spent, 2000);
   assert.equal(total.level, 'ok');
   assert.equal(fun.spent, 2000);
@@ -60,6 +60,12 @@ test('finance: gastos por categoría y presupuestos', () => {
   assert.equal(budgetStatus(state, '2026-10')[1].level, 'warn', 'al 80 % avisa');
   state.budgets[1].amount = 2600;
   assert.equal(budgetStatus(state, '2026-10')[1].level, 'ok', 'al 77 % todavía no avisa');
+  // Un presupuesto de varias categorías suma lo de todas; la misma categoría puede estar en otro.
+  state.budgets.push({ id: 'budgetAll', name: 'Todo', categoryIds: ['catFoodXX', 'catFunXXX'], amount: 10000 });
+  const september = budgetStatus(state, '2026-09').find((b) => b.id === 'budgetAll');
+  assert.equal(september.spent, 5000, 'septiembre: solo comida');
+  const october = budgetStatus(state, '2026-10').find((b) => b.id === 'budgetAll');
+  assert.equal(october.spent, 2000, 'octubre: solo ocio');
 });
 
 test('finance: series mensuales y de patrimonio', () => {

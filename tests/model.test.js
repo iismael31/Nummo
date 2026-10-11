@@ -52,16 +52,34 @@ test('model: reglas de coherencia de movimientos', () => {
   }
 });
 
-test('model: identificadores repetidos y presupuestos duplicados se rechazan', () => {
+test('model: identificadores repetidos y presupuestos no válidos se rechazan', () => {
   const raw = sampleState();
   raw.accounts.push({ ...raw.accounts[0] });
   assert.throws(() => normalizeData(raw), isValidation);
-  const raw2 = sampleState();
-  raw2.budgets.push({ id: 'budgetDup', categoryId: 'catFunXXX', amount: 500 });
-  assert.throws(() => normalizeData(raw2), isValidation);
-  const raw3 = sampleState();
-  raw3.budgets.push({ id: 'budgetInc', categoryId: 'catSalary', amount: 500 });
-  assert.throws(() => normalizeData(raw3), isValidation, 'presupuesto sobre categoría de ingreso');
+  const budgetCases = [
+    { id: 'budgetTo2', name: '', categoryIds: null, amount: 500 }, // segundo total del mes
+    { id: 'budgetInc', name: '', categoryIds: ['catSalary'], amount: 500 }, // categoría de ingreso
+    { id: 'budgetEmp', name: '', categoryIds: [], amount: 500 }, // sin categorías
+    { id: 'budgetBad', name: '', categoryIds: ['noExiste1'], amount: 500 },
+  ];
+  for (const budget of budgetCases) {
+    const bad = sampleState();
+    bad.budgets.push(budget);
+    assert.throws(() => normalizeData(bad), isValidation, budget.id);
+  }
+  const shared = sampleState();
+  shared.budgets.push({ id: 'budgetMix', name: '  Todo  ', categoryIds: ['catFoodXX', 'catFunXXX', 'catFunXXX'], amount: 9000 });
+  const mix = normalizeData(shared).data.budgets.find((b) => b.id === 'budgetMix');
+  assert.deepEqual(mix, { id: 'budgetMix', name: 'Todo', categoryIds: ['catFoodXX', 'catFunXXX'], amount: 9000 }, 'una categoría puede estar en varios presupuestos');
+});
+
+test('model: los datos de la versión 1 (presupuesto de una categoría) se convierten', () => {
+  const old = sampleState();
+  old.version = 1;
+  old.budgets = [{ id: 'budgetTot', categoryId: null, amount: 10000 }, { id: 'budgetFun', categoryId: 'catFunXXX', amount: 1500 }];
+  const { data } = normalizeData(old);
+  assert.equal(data.version, SCHEMA_VERSION);
+  assert.deepEqual(data.budgets, sampleState().budgets);
 });
 
 test('model: versión de datos más nueva o desconocida', () => {

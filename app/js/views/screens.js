@@ -9,6 +9,7 @@ import { confirmDialog } from '../ui/sheet.js';
 import { toast } from '../ui/toast.js';
 import { restoreForm, describeData } from '../ui/restore.js';
 import { pwa, promptInstall, onPwaChange } from '../ui/pwa.js';
+import { passkeySecret, biometricTexts, BiometricCancelledError } from '../ui/biometric.js';
 import * as vault from '../core/vault.js';
 import * as store from '../core/store.js';
 import { createInitialState, ValidationError } from '../core/model.js';
@@ -127,7 +128,14 @@ const mmss = (ms) => {
 /** Pantalla del PIN. `warning`: aviso a mostrar (p. ej. cambios que no se pudieron guardar). */
 export async function showLock({ warning = null } = {}) {
   let timer = null;
+  let opened = false;
   const pad = pinPad({ onComplete: tryUnlock });
+  const bioBox = h('div', { class: 'bio-unlock' });
+  const bioMessage = h('p', { class: 'help', role: 'status' });
+  let bioState = null;
+  let bioBusy = false;
+  let bioButton = null;
+  let onVisible = null;
   const countdown = (until) => {
     clearInterval(timer);
     pad.setBusy(true);
@@ -168,26 +176,89 @@ export async function showLock({ warning = null } = {}) {
       }
       return;
     }
+    finishUnlock(buckets, (message) => pad.error(message));
+  }
+
+  /** Carga los datos ya descifrados (con el PIN o con Face ID / huella) y entra en la app. */
+  function finishUnlock(buckets, report) {
+    if (opened) return; // ya se entró por el otro camino
     try {
       const dropped = store.loadFromBuckets(buckets);
+      opened = true;
       clearInterval(timer);
       onReady();
       if (dropped) toast(`Se han descartado ${dropped} elementos dañados.`, { kind: 'error' });
     } catch (error) {
-      // PIN correcto pero datos que no se pueden cargar: la clave no se queda en memoria.
+      // Clave correcta pero datos que no se pueden cargar: la clave no se queda en memoria.
       console.error(error);
       vault.lock();
       store.unload();
-      pad.error(error instanceof ValidationError ? error.message : 'No se han podido abrir tus datos.');
+      report(error instanceof ValidationError ? error.message : 'No se han podido abrir tus datos.');
     }
+  }
+
+  async function tryBiometric() {
+    if (bioBusy || opened) return;
+    bioBusy = true;
+    bioButton.disabled = true;
+    bioMessage.textContent = '';
+    let buckets;
+    try {
+      buckets = await vault.unlockWithBiometric(await passkeySecret(bioState));
+    } catch (error) {
+      if (!(error instanceof BiometricCancelledError)) {
+        if (!(error instanceof vault.BiometricError)) console.error(error);
+        bioMessage.textContent = error instanceof vault.BiometricError
+          ? `${error.message}. Usa tu PIN.`
+          : `No se ha podido usar ${biometricTexts().use}. Usa tu PIN.`;
+      }
+      return;
+    } finally {
+      bioBusy = false;
+      bioButton.disabled = false;
+    }
+    finishUnlock(buckets, (message) => { bioMessage.textContent = message; });
   }
 
   screen([
     lead(h('h1', null, 'Introduce tu PIN'), null),
     warning ? notice({ iconName: 'alert-triangle', kind: 'warn', text: warning }) : null,
     pad.el,
+    bioBox,
     h('button', { type: 'button', class: 'btn-text', onClick: forgotPin }, '¿Has olvidado el PIN?'),
-  ], { onLeave: () => clearInterval(timer) });
+  ], {
+    onLeave: () => {
+      clearInterval(timer);
+      if (onVisible) document.removeEventListener('visibilitychange', onVisible);
+    },
+  });
+
+  // Face ID o huella: botón y, si la app está a la vista, se pide directamente una vez.
+  try {
+    bioState = await vault.biometricStatus();
+  } catch (error) {
+    console.error(error);
+  }
+  if (bioState?.enabled && bioBox.isConnected) {
+    const t = biometricTexts();
+    if (bioState.pinDue) {
+      replace(bioBox, h('p', { class: 'help' }, `Por seguridad, cada 7 días te pido el PIN aunque uses ${t.use}.`));
+    } else {
+      bioButton = h('button', { type: 'button', class: 'btn', onClick: tryBiometric }, icon(t.icon), `Usar ${t.name}`);
+      replace(bioBox, bioButton, bioMessage);
+      if (document.visibilityState === 'visible') {
+        tryBiometric();
+      } else {
+        onVisible = () => {
+          if (document.visibilityState !== 'visible') return;
+          document.removeEventListener('visibilitychange', onVisible);
+          onVisible = null;
+          if (bioBox.isConnected) tryBiometric();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+      }
+    }
+  }
 
   try {
     const lockout = await vault.getLockout();

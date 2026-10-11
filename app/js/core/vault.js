@@ -4,11 +4,14 @@
 // Mientras la app está desbloqueada la DEK vive solo en memoria y no es extraíble.
 // Cada escritura comprueba una marca de revisión: si otra pestaña o ventana de la app escribió
 // después de que esta cargara los datos, se rechaza (ConflictError) en vez de pisarlos.
+// Desbloqueo biométrico (opcional): una llave de acceso del dispositivo (WebAuthn con la extensión
+// PRF) entrega un secreto solo tras Face ID o la huella; de él sale otra clave que guarda una
+// segunda copia cifrada de la DEK. Sin ese secreto, esa copia no sirve de nada.
 
 import * as idb from './idb.js';
 import { newId } from './ids.js';
 import {
-  DEFAULT_ITERATIONS, SALT_BYTES, randomBytes, deriveKey, importAesKey,
+  DEFAULT_ITERATIONS, SALT_BYTES, randomBytes, deriveKey, hkdfKey, importAesKey,
   encryptBytes, decryptBytes, encryptJSON, decryptJSON,
 } from './crypto.js';
 import { isBucketKey } from './model.js';
@@ -16,14 +19,20 @@ import { isBucketKey } from './model.js';
 const META_KEY = 'vault';
 const LOCKOUT_KEY = 'lockout';
 const REVISION_KEY = 'revision';
+const BIO_KEY = 'biometric';
 export { ConflictError } from './idb.js';
 const DEK_AAD = 'nummo:dek:v1';
+const BIO_DEK_AAD = 'nummo:bio-dek:v1';
+const BIO_KEY_INFO = 'nummo:bio-key:v1';
 const bucketAad = (key) => `nummo:bucket:v1:${key}`;
 
 export const PIN_LENGTH = 6;
 export const FREE_ATTEMPTS = 5;
 const BASE_DELAY_MS = 30_000;
 const MAX_DELAY_MS = 15 * 60_000;
+/** Con Face ID o huella, el PIN se pide igualmente cada 7 días para no olvidarlo. */
+export const PIN_REMINDER_MS = 7 * 24 * 60 * 60_000;
+export const BIO_SALT_BYTES = 32;
 
 export class WrongPinError extends Error {
   constructor(lockedUntil, failures) {
@@ -31,6 +40,13 @@ export class WrongPinError extends Error {
     this.name = 'WrongPinError';
     this.lockedUntil = lockedUntil; // 0 si aún quedan intentos libres
     this.failures = failures; // fallos seguidos, incluido este
+  }
+}
+
+export class BiometricError extends Error {
+  constructor(message = 'No se ha podido usar el desbloqueo biométrico') {
+    super(message);
+    this.name = 'BiometricError';
   }
 }
 
@@ -148,9 +164,8 @@ export async function create(pin, buckets) {
   }
 }
 
-/** Desbloquea con el PIN y devuelve los bloques descifrados (Map nombre → objeto). */
-export async function unlock(pin) {
-  const dekRaw = await openDek(pin);
+/** Con la DEK en claro (que se borra al terminar), descifra todos los bloques y deja la caja abierta. */
+async function openWith(dekRaw) {
   let key;
   try {
     key = await importAesKey(dekRaw);
@@ -162,6 +177,74 @@ export async function unlock(pin) {
   dek = key;
   revision = current;
   return new Map(decrypted);
+}
+
+/** Desbloquea con el PIN y devuelve los bloques descifrados (Map nombre → objeto). */
+export async function unlock(pin) {
+  const buckets = await openWith(await openDek(pin));
+  // Se ha usado el PIN: vuelve a contar el plazo de 7 días del recordatorio (si falla, no impide entrar).
+  try {
+    const bio = await idb.get('meta', BIO_KEY);
+    if (bio) await idb.put('meta', BIO_KEY, { ...bio, pinAt: Date.now() });
+  } catch (error) {
+    console.warn(error);
+  }
+  return buckets;
+}
+
+// --- Desbloqueo biométrico --------------------------------------------------------------------
+
+/** Han pasado 7 días desde el último PIN (o la hora del dispositivo ha retrocedido). */
+const pinDue = (bio) => {
+  const elapsed = Date.now() - bio.pinAt;
+  return !(elapsed >= 0 && elapsed < PIN_REMINDER_MS);
+};
+
+/** ¿Está activado en este dispositivo? y ¿toca pedir el PIN? */
+export async function biometricStatus() {
+  const bio = await idb.get('meta', BIO_KEY);
+  if (!bio) return { enabled: false, pinDue: false, credentialId: null, salt: null };
+  return { enabled: true, pinDue: pinDue(bio), credentialId: bio.credentialId, salt: bio.salt };
+}
+
+/**
+ * Primer paso para activarlo: comprueba el PIN (cuenta como intento) y devuelve la DEK en claro.
+ * Quien la recibe debe pasarla a enableBiometric o borrarla con fill(0).
+ */
+export function dekForBiometric(pin) {
+  return openDek(pin);
+}
+
+/** Guarda una copia de la DEK cifrada con la clave que sale del secreto de la llave de acceso. */
+export async function enableBiometric(dekRaw, { credentialId, salt, secret }) {
+  try {
+    const key = await hkdfKey(secret, BIO_KEY_INFO);
+    const box = await encryptBytes(key, dekRaw, BIO_DEK_AAD);
+    await idb.put('meta', BIO_KEY, { v: 1, credentialId, salt, dek: box, pinAt: Date.now() });
+  } finally {
+    dekRaw.fill(0);
+    secret.fill(0);
+  }
+}
+
+export async function disableBiometric() {
+  await idb.write('meta', [], [BIO_KEY]);
+}
+
+/** Desbloquea con el secreto que entrega la llave de acceso tras Face ID o la huella. */
+export async function unlockWithBiometric(secret) {
+  const bio = await idb.get('meta', BIO_KEY);
+  if (!bio) throw new BiometricError('El desbloqueo biométrico no está activado');
+  if (pinDue(bio)) throw new BiometricError('Toca escribir el PIN (se pide cada 7 días)');
+  let dekRaw;
+  try {
+    dekRaw = await decryptBytes(await hkdfKey(secret, BIO_KEY_INFO), bio.dek, BIO_DEK_AAD);
+  } catch {
+    throw new BiometricError('Esta llave de acceso no corresponde a tus datos');
+  } finally {
+    secret.fill(0);
+  }
+  return openWith(dekRaw);
 }
 
 export function lock() {

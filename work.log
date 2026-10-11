@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-10-11 — Teclado automático, «+ Nueva» categoría, presupuestos múltiples y Face ID
+
+Tipo: cambio | seguridad | incidencia
+
+Qué se hizo:
+- Bug: al abrir un formulario (cuenta, gasto, deuda, categoría, programado, presupuesto, copia) se
+  enfocaba un campo y el iPhone sacaba el teclado. openSheet ya no acepta «focus»: el foco empieza en
+  «Cancelar». Al cerrar una hoja encima de otra, el foco vuelve dentro de la que sigue abierta.
+- Categorías: categoryGrid admite «Nueva» (onCreate) y selección múltiple. Desde gastos/ingresos,
+  programados y presupuestos se crea la categoría en una hoja encima y queda elegida.
+- Presupuestos: { id, name, categoryIds | null, amount }. Una categoría puede estar en varios
+  presupuestos (decisión de la persona propietaria); solo un total del mes. SCHEMA_VERSION 2 con
+  conversión automática de datos y copias de la versión 1. store.saveBudget/deleteBudget sustituyen a
+  setBudget; quitar un presupuesto pide confirmación. Al borrar una categoría sale de sus presupuestos.
+- Face ID / huella: ui/biometric.js (WebAuthn con extensión PRF, llave del propio dispositivo) y
+  vault.js (copia de la DEK cifrada con HKDF(secreto PRF), meta «biometric»). Activación: PIN → toque
+  nuevo → Face ID. Pantalla del PIN: botón «Usar Face ID» y petición automática si la app está a la
+  vista. PIN obligatorio cada 7 días (decisión de la persona propietaria), comprobado en la caja fuerte.
+  Iconos face-id y fingerprint añadidos (Tabler v3.48.0).
+
+Por qué:
+Peticiones de la persona propietaria (3 mejoras y 1 bug).
+
+Archivos / recursos afectados:
+- app/js/core/model.js, finance.js, store.js, vault.js, crypto.js
+- app/js/ui/sheet.js, components.js, biometric.js (nuevo), icon-data.js
+- app/js/views/budgets.js, categories.js, movement-form.js, recurring.js, shared.js, home.js, stats.js,
+  security.js, screens.js, accounts.js, debt-forms.js, backup.js
+- app/css/app.css, tools/fetch_icons.py, tests/fixtures.js, model/finance/store/vault.test.js
+- GUIA-DE-USO.md, DOCUMENTACION-TECNICA.md, to-do.md
+
+Verificación:
+- 76/76 tests (nuevos: conversión de la versión 1, presupuestos no válidos y compartidos, suma por meses,
+  saveBudget/deleteBudget y cascada, Face ID con secreto correcto e incorrecto, PIN cada 7 días, hora
+  que retrocede, cambio de PIN y desactivación). tools/release.py sin avisos (59 recursos).
+- En el navegador: al abrir un gasto el foco queda en «Cancelar»; «+ Nueva» crea y elige «Gimnasio»;
+  presupuesto «Ocio y deporte» con dos categorías; activar la huella (llave simulada) → bloquear →
+  «Usar huella» abre la app; cancelar no muestra error; un secreto ajeno avisa y deja usar el PIN.
+- Pendiente: probar Face ID en un iPhone real (ver to-do.md).
+
+---
+
 ## 2026-10-05 21:50 — Nuevo nombre y logo: Nummo
 
 Tipo: cambio | documentación

@@ -104,7 +104,7 @@ a { color: var(--accent); }
 h1, h2, h3, p { margin: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Títulos enfocados por código al cambiar de pantalla (para lectores de pantalla): sin marco */
-h1[tabindex="-1"]:focus { outline: none; }
+h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .num { font-variant-numeric: tabular-nums; }
@@ -444,6 +444,8 @@ input[type="date"].input::-webkit-date-and-time-value { text-align: left; }
 .pick span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick[aria-pressed="true"] { background: var(--accent-bg); color: var(--text); font-weight: 600; }
 .pick[aria-pressed="true"] .tile { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.pick-new { color: var(--accent); }
+.pick-new .tile { background: none; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
 .icon-choice { display: grid; place-items: center; height: 52px; border: 0; border-radius: 12px; background: var(--bg-elev); color: var(--text); }
 .icon-choice .icon { width: 26px; height: 26px; }
@@ -596,6 +598,8 @@ dialog.alert[open] { animation: alert-in 0.2s ease-out; }
   color: #F2EFEB;
 }
 .app-mark .icon { width: 42px; height: 42px; }
+.bio-unlock { display: grid; gap: 6px; justify-items: center; width: 100%; }
+.bio-unlock:empty { display: none; }
 .benefits { display: grid; gap: 14px; width: 100%; padding: 4px 0; margin: 0; list-style: none; text-align: left; }
 .benefits li { display: flex; gap: 14px; align-items: flex-start; }
 .benefits .icon { color: var(--accent); width: 26px; height: 26px; }

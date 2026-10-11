@@ -12,6 +12,7 @@ import { ValidationError, LIMITS } from '../core/model.js';
 import { todayISO, addDays } from '../core/dates.js';
 import { countDue } from '../core/recurring.js';
 import { openDebtMovementForm } from './debt-forms.js';
+import { openCategoryForm } from './categories.js';
 
 const TYPE_OPTIONS = [
   { value: 'expense', label: 'Gasto' },
@@ -80,12 +81,18 @@ export function openMovementForm({ movement = null, preset = {} } = {}) {
         field('Hacia', chipPicker(accounts, draft.toAccountId, (id) => { draft.toAccountId = id; }, { label: 'Cuenta de destino' })));
       return;
     }
-    const categories = selectableCategories(state, draft.type, movement?.categoryId);
+    const categories = selectableCategories(store.getState(), draft.type, movement?.categoryId);
     if (!categories.some((c) => c.id === draft.categoryId)) draft.categoryId = null;
+    const createCategory = () => openCategoryForm({
+      kind: draft.type,
+      onCreated: (category) => {
+        draft.categoryId = category.id;
+        error.textContent = '';
+        renderDynamic();
+      },
+    });
     replace(dynamic,
-      field('Categoría', categories.length
-        ? categoryGrid(categories, draft.categoryId, (id) => { draft.categoryId = id; error.textContent = ''; })
-        : h('p', { class: 'help' }, 'No tienes categorías de este tipo. Créalas en Más → Categorías.')),
+      field('Categoría', categoryGrid(categories, draft.categoryId, (id) => { draft.categoryId = id; error.textContent = ''; }, { onCreate: createCategory })),
       field('Cuenta', chipPicker(accounts, draft.accountId, (id) => { draft.accountId = id; }, { label: 'Cuenta' })));
   };
   renderDynamic();
@@ -180,6 +187,5 @@ export function openMovementForm({ movement = null, preset = {} } = {}) {
     body,
     primary: { label: 'Guardar', onClick: save },
     tall: true,
-    focus: editing ? null : amount.input,
   });
 }

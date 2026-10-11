@@ -84,3 +84,38 @@ test('vault: varios intentos de PIN a la vez cuentan todos', async () => {
   await Promise.allSettled([vault.unlock('000001'), vault.unlock('000002'), vault.unlock('000003')]);
   assert.equal((await vault.getLockout()).failures, 3);
 });
+
+test('vault: Face ID o huella abren con el secreto de su llave y el PIN se pide cada 7 días', async () => {
+  await freshVault();
+  const salt = new Uint8Array(32).fill(7);
+  const secret = () => new Uint8Array(32).fill(42); // lo que entregaría la llave de acceso tras Face ID
+  await assert.rejects(() => vault.dekForBiometric('000000'), (e) => e instanceof vault.WrongPinError, 'activarlo exige el PIN');
+  const dekRaw = await vault.dekForBiometric('135790');
+  const given = secret();
+  await vault.enableBiometric(dekRaw, { credentialId: new Uint8Array([1, 2, 3]), salt, secret: given });
+  assert.ok(dekRaw.every((b) => b === 0) && given.every((b) => b === 0), 'la clave y el secreto en claro se borran de memoria');
+  assert.deepEqual(await vault.biometricStatus(), { enabled: true, pinDue: false, credentialId: new Uint8Array([1, 2, 3]), salt });
+
+  vault.lock();
+  await assert.rejects(() => vault.unlockWithBiometric(new Uint8Array(32).fill(1)), (e) => e instanceof vault.BiometricError, 'otro secreto no sirve');
+  const buckets = await vault.unlockWithBiometric(secret());
+  assert.deepEqual(buckets.get('core'), { hola: 'mundo secreto' });
+
+  // Pasados 7 días (o si la hora retrocede) hay que escribir el PIN, que vuelve a contar el plazo.
+  for (const pinAt of [Date.now() - vault.PIN_REMINDER_MS - 1, Date.now() + 60_000]) {
+    const bio = await idb.get('meta', 'biometric');
+    await idb.put('meta', 'biometric', { ...bio, pinAt });
+    vault.lock();
+    assert.equal((await vault.biometricStatus()).pinDue, true);
+    await assert.rejects(() => vault.unlockWithBiometric(secret()), (e) => e instanceof vault.BiometricError);
+    await vault.unlock('135790');
+    assert.equal((await vault.biometricStatus()).pinDue, false, 'el PIN reinicia el plazo');
+  }
+
+  // Cambiar el PIN no lo estropea (la clave de los datos es la misma); desactivarlo lo borra.
+  await vault.changePin('135790', '246810');
+  vault.lock();
+  await vault.unlockWithBiometric(secret());
+  await vault.disableBiometric();
+  assert.equal((await vault.biometricStatus()).enabled, false);
+});

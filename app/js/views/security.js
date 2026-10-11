@@ -1,15 +1,140 @@
-// Seguridad: cambiar el PIN, bloqueo automático y explicación de cómo se protegen los datos.
+// Seguridad: cambiar el PIN, Face ID o huella, bloqueo automático y cómo se protegen los datos.
 
-import { h } from '../ui/dom.js';
+import { h, replace } from '../ui/dom.js';
 import { icon } from '../ui/icons.js';
-import { section, list, row } from '../ui/components.js';
-import { openSheet } from '../ui/sheet.js';
+import { section, list, row, toggleRow } from '../ui/components.js';
+import { openSheet, confirmDialog } from '../ui/sheet.js';
 import { pinPad } from '../ui/pinpad.js';
 import { toast } from '../ui/toast.js';
-import { lockNow } from '../ui/session.js';
+import { rerender } from '../ui/shell.js';
+import { lockNow, registerViewReset } from '../ui/session.js';
+import {
+  isBiometricAvailable, createPasskey, passkeySecret, forgetPasskey, biometricTexts,
+  BiometricCancelledError, BiometricUnsupportedError,
+} from '../ui/biometric.js';
 import * as store from '../core/store.js';
 import * as vault from '../core/vault.js';
 import { AUTO_LOCK_OPTIONS } from '../core/catalog.js';
+
+// Estado del desbloqueo biométrico (asíncrono): null mientras se consulta.
+let bio = null;
+registerViewReset(() => {
+  bio = null;
+});
+
+async function loadBiometric() {
+  const [available, status] = await Promise.all([isBiometricAvailable(), vault.biometricStatus().catch(() => ({ enabled: false }))]);
+  bio = { available, enabled: status.enabled, credentialId: status.credentialId };
+  rerender();
+}
+
+/** PIN → «Activar» (un toque nuevo, que el sistema exige para Face ID) → listo. */
+function openEnableBiometric() {
+  const t = biometricTexts();
+  let dekRaw = null;
+  let pending = null; // llave creada cuyo secreto falta pedir
+  let done = false;
+  const title = h('p', { class: 'alert-title', 'aria-live': 'polite' }, 'Escribe tu PIN');
+  const content = h('div', { class: 'form' });
+  const status = h('p', { class: 'help', role: 'status' });
+
+  const finish = async (passkey) => {
+    await vault.enableBiometric(dekRaw, passkey);
+    dekRaw = null;
+    done = true;
+    sheet.close();
+    toast(t.enabled);
+    loadBiometric();
+  };
+
+  const activate = async (button) => {
+    button.disabled = true;
+    status.textContent = '';
+    try {
+      if (!pending) {
+        const passkey = await createPasskey();
+        if (passkey.secret) return await finish(passkey);
+        pending = passkey; // este dispositivo pide confirmar otra vez para entregar el secreto
+        title.textContent = `Confirma otra vez ${t.with}`;
+        button.textContent = `Confirmar ${t.with}`;
+        return;
+      }
+      await finish({ ...pending, secret: await passkeySecret(pending) });
+    } catch (error) {
+      if (error instanceof BiometricCancelledError) status.textContent = 'Cancelado. Pulsa el botón para intentarlo de nuevo.';
+      else if (error instanceof BiometricUnsupportedError) status.textContent = `Este móvil no permite usar ${t.use} con apps web. En iPhone hace falta iOS 18 o posterior.`;
+      else {
+        console.error(error);
+        status.textContent = `No se ha podido activar ${t.use}.`;
+      }
+    } finally {
+      button.disabled = false;
+    }
+  };
+
+  const pad = pinPad({
+    onComplete: async (pin) => {
+      pad.setBusy(true);
+      try {
+        dekRaw = await vault.dekForBiometric(pin);
+      } catch (error) {
+        pad.setBusy(false);
+        if (error instanceof vault.LockedOutError || error?.lockedUntil) pad.error('Demasiados intentos. Espera unos minutos.');
+        else if (error instanceof vault.WrongPinError) pad.error('PIN incorrecto.');
+        else throw error;
+        return;
+      }
+      title.textContent = `Ahora confirma ${t.with}`;
+      const button = h('button', { type: 'button', class: 'btn primary', onClick: () => activate(button) }, `Activar ${t.name}`);
+      replace(content,
+        h('p', { class: 'help' }, `Se creará una llave de acceso para Nummo en este móvil. Solo sirve para abrir la app ${t.with}.`),
+        button,
+        status);
+    },
+  });
+  replace(content, pad.el);
+  const sheet = openSheet({
+    title: `Activar ${t.name}`,
+    tall: true,
+    onClose: () => {
+      dekRaw?.fill(0); // si se cancela a medias, la clave en claro no se queda en memoria
+      if (pending && !done) forgetPasskey(pending.credentialId); // ni una llave sin usar en el llavero
+    },
+    body: [title, content],
+  });
+}
+
+async function disableBiometric() {
+  const t = biometricTexts();
+  const confirmed = await confirmDialog({
+    title: `¿Desactivar ${t.use}?`,
+    text: 'La app volverá a pedirte siempre el PIN.',
+    confirmLabel: 'Desactivar',
+  });
+  if (!confirmed) return rerender();
+  await vault.disableBiometric();
+  if (bio?.credentialId) forgetPasskey(bio.credentialId);
+  toast(t.disabled);
+  loadBiometric();
+}
+
+function biometricSection() {
+  if (bio === null) {
+    loadBiometric();
+    return null;
+  }
+  if (!bio.available && !bio.enabled) return null;
+  const t = biometricTexts();
+  return section({ title: t.title, caption: `Aunque uses ${t.use}, cada 7 días te pediré el PIN para que no lo olvides: sin él no se pueden recuperar los datos.` },
+    list([toggleRow(`Desbloquear ${t.with}`, bio.enabled, (checked) => {
+      if (checked) {
+        rerender(); // el interruptor refleja el estado real hasta terminar la activación
+        openEnableBiometric();
+      } else {
+        disableBiometric();
+      }
+    })], { plain: true }));
+}
 
 function openChangePin() {
   let step = 'current';
@@ -76,6 +201,7 @@ export function securityView() {
         row({ lead: icon('key'), title: 'Cambiar PIN', chevron: true, onClick: openChangePin }),
         row({ lead: icon('lock'), title: 'Bloquear ahora', onClick: () => lockNow() }),
       ])),
+      biometricSection(),
       section({ title: 'Bloqueo automático', caption: 'Cuánto tiempo puede estar la app en segundo plano antes de volver a pedir el PIN.' },
         list(AUTO_LOCK_OPTIONS.map((option) => {
           const selected = option.seconds === state.settings.autoLockSec;

@@ -19,7 +19,9 @@ function closeDialog(dialog, done, immediate, openerKey = null) {
     // Devuelve el foco al botón que abrió la hoja (o a su equivalente si la vista se repintó).
     if (!immediate) {
       requestAnimationFrame(() => {
-        if (!restoreFocus(document.getElementById('app'), openerKey)) document.querySelector('main h1')?.focus({ preventScroll: true });
+        const below = [...document.querySelectorAll('dialog[open]')].pop(); // otra hoja que sigue abierta
+        if (restoreFocus(below ?? document.getElementById('app'), openerKey)) return;
+        (below?.querySelector('.sheet-title') ?? document.querySelector('main h1'))?.focus({ preventScroll: true });
       });
     }
   };
@@ -33,10 +35,11 @@ function closeDialog(dialog, done, immediate, openerKey = null) {
 
 /**
  * Abre una hoja inferior.
- * { title, body, primary: { label, onClick }, tall, onClose, focus: elemento a enfocar }
+ * { title, body, primary: { label, onClick }, tall, onClose }
+ * No enfoca ningún campo al abrirse: el teclado solo aparece cuando la persona toca uno.
  * Devuelve { close }.
  */
-export function openSheet({ title, body, primary = null, tall = false, onClose = null, focus = null }) {
+export function openSheet({ title, body, primary = null, tall = false, onClose = null }) {
   const titleId = uid('t');
   const openerKey = focusKey(document.activeElement);
   const primaryButton = primary
@@ -45,7 +48,7 @@ export function openSheet({ title, body, primary = null, tall = false, onClose =
   const dialog = h('dialog', { class: ['sheet', tall && 'tall'], 'aria-labelledby': titleId },
     h('div', { class: 'sheet-head' },
       h('button', { type: 'button', class: 'btn-text', onClick: () => api.close() }, 'Cancelar'),
-      h('h2', { class: 'sheet-title', id: titleId }, title),
+      h('h2', { class: 'sheet-title', id: titleId, tabindex: '-1' }, title),
       primaryButton),
     h('div', { class: 'sheet-body' }, body));
   let closed = false;
@@ -73,7 +76,6 @@ export function openSheet({ title, body, primary = null, tall = false, onClose =
   });
   document.body.append(dialog);
   dialog.showModal();
-  focus?.focus(); // en iOS abre el teclado si se llama dentro del mismo toque del usuario
   openSheets.add(api);
   return api;
 }

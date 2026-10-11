@@ -74,7 +74,8 @@ function chooseReplacement(category) {
   });
 }
 
-export function openCategoryForm({ category = null, kind: newKind = 'expense' } = {}) {
+/** Crea o edita una categoría. `onCreated(categoría)`: al crearla desde otro formulario, para elegirla. */
+export function openCategoryForm({ category = null, kind: newKind = 'expense', onCreated = null } = {}) {
   const editing = category !== null;
   const draft = { icon: category?.icon ?? 'tag', color: category?.color ?? 'blue', archived: category?.archived ?? false };
   const preview = h('div', { class: 'preview' });
@@ -88,10 +89,11 @@ export function openCategoryForm({ category = null, kind: newKind = 'expense' } 
     error.textContent = '';
     try {
       const data = { name: name.value, icon: draft.icon, color: draft.color, archived: draft.archived };
+      const created = editing ? null : store.addCategory({ ...data, kind: newKind });
       if (editing) store.updateCategory(category.id, data);
-      else store.addCategory({ ...data, kind: newKind });
       sheet.close();
       toast(editing ? 'Categoría guardada' : 'Categoría creada');
+      if (created) onCreated?.(created);
     } catch (e) {
       if (!(e instanceof ValidationError)) throw e;
       error.textContent = e.message;
@@ -107,7 +109,7 @@ export function openCategoryForm({ category = null, kind: newKind = 'expense' } 
     } else {
       const confirmed = await confirmDialog({
         title: `¿Borrar «${category.name}»?`,
-        text: usage.budget ? 'También se quitará su presupuesto.' : 'No tiene movimientos.',
+        text: usage.budgets ? 'No tiene movimientos. También se quitará de sus presupuestos.' : 'No tiene movimientos.',
         confirmLabel: 'Borrar',
         danger: true,
       });
@@ -127,7 +129,6 @@ export function openCategoryForm({ category = null, kind: newKind = 'expense' } 
     title: editing ? 'Editar categoría' : 'Nueva categoría',
     tall: true,
     primary: { label: 'Guardar', onClick: save },
-    focus: editing ? null : name,
     body: [
       preview,
       field('Nombre', name),

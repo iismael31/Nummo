@@ -35,6 +35,18 @@ export async function deriveKey(secret, salt, iterations = DEFAULT_ITERATIONS) {
   );
 }
 
+/** Clave AES-GCM no extraíble derivada con HKDF-SHA-256 de un secreto aleatorio de alta entropía. */
+export async function hkdfKey(secret, info) {
+  const base = await crypto.subtle.importKey('raw', secret, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: encoder.encode(info) },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  );
+}
+
 /** Importa 32 bytes aleatorios como clave AES-GCM no extraíble. */
 export function importAesKey(raw) {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);

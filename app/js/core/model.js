@@ -10,7 +10,8 @@ import {
   DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, AUTO_LOCK_OPTIONS, DEFAULT_AUTO_LOCK,
 } from './catalog.js';
 
-export const SCHEMA_VERSION = 1;
+// 2: presupuestos con varias categorías (`categoryIds`). Los datos de la versión 1 se convierten al leerlos.
+export const SCHEMA_VERSION = 2;
 export const CORE_BUCKET = 'core';
 export const LIMITS = {
   name: 40, note: 140,
@@ -98,11 +99,20 @@ export function normalizeDebt(raw) {
   };
 }
 
+/** Presupuesto mensual: el total del mes (`categoryIds: null`) o la suma de una o varias categorías. */
 export function normalizeBudget(raw) {
   if (!isObject(raw)) fail('Presupuesto no válido.');
+  let ids;
+  if ('categoryIds' in raw) ids = raw.categoryIds;
+  else if ('categoryId' in raw) ids = raw.categoryId === null ? null : [raw.categoryId]; // versión 1: una sola categoría
+  else fail('Presupuesto no válido.');
+  if (ids !== null && (!Array.isArray(ids) || ids.length === 0 || ids.length > LIMITS.categories)) {
+    fail('El presupuesto necesita al menos una categoría.');
+  }
   return {
     id: requireId(raw.id, 'Presupuesto'),
-    categoryId: raw.categoryId == null ? null : requireId(raw.categoryId, 'Presupuesto'),
+    name: cleanText(raw.name, LIMITS.name),
+    categoryIds: ids === null ? null : [...new Set(ids.map((id) => requireId(id, 'Presupuesto')))],
     amount: positiveCents(raw.amount, 'Presupuesto'),
   };
 }
@@ -186,7 +196,7 @@ export function normalizeSettings(raw) {
  */
 export function normalizeData(raw, { strict = true } = {}) {
   if (!isObject(raw)) fail('Los datos no tienen un formato válido.');
-  if (raw.version !== SCHEMA_VERSION) {
+  if (!Number.isInteger(raw.version) || raw.version < 1 || raw.version > SCHEMA_VERSION) {
     fail(Number.isInteger(raw.version) && raw.version > SCHEMA_VERSION
       ? 'Los datos son de una versión más nueva de la app. Actualiza la app e inténtalo de nuevo.'
       : 'Versión de datos no reconocida.');
@@ -251,13 +261,16 @@ export function normalizeData(raw, { strict = true } = {}) {
     return m;
   });
 
-  const budgetKeys = new Set();
+  // Una categoría puede estar en varios presupuestos; el total del mes solo puede haber uno.
+  let hasTotal = false;
   const budgets = collect(raw.budgets, LIMITS.budgets, 'Presupuestos', (item) => {
     const b = normalizeBudget(item);
-    if (b.categoryId !== null && categoryKind.get(b.categoryId) !== 'expense') fail('Presupuesto: la categoría no existe.');
-    const key = b.categoryId ?? 'total';
-    if (budgetKeys.has(key)) fail('Presupuesto repetido para la misma categoría.');
-    budgetKeys.add(key);
+    if (b.categoryIds === null) {
+      if (hasTotal) fail('Solo puede haber un presupuesto total del mes.');
+      hasTotal = true;
+    } else if (b.categoryIds.some((id) => categoryKind.get(id) !== 'expense')) {
+      fail('Presupuesto: la categoría no existe o no es de gasto.');
+    }
     return b;
   });
 

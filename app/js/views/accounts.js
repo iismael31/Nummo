@@ -154,7 +154,6 @@ export function openAccountForm({ account = null } = {}) {
     title: editing ? 'Editar cuenta' : 'Nueva cuenta',
     tall: true,
     primary: { label: 'Guardar', onClick: save },
-    focus: editing ? null : name,
     body: [
       preview,
       field('Nombre', name),

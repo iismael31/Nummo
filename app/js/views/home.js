@@ -88,7 +88,7 @@ export function homeView() {
   const atRisk = derived.budgets(monthKey).filter((b) => b.level !== 'ok').slice(0, 3);
   if (atRisk.length) {
     body.push(section({ title: 'Presupuestos', action: { label: 'Ver todos', onClick: () => router.navigate('/mas/presupuestos') } },
-      list(atRisk.map((b) => budgetItem(b, look.categories.get(b.categoryId))))));
+      list(atRisk.map((b) => budgetItem(b, look)))));
   }
 
   const accounts = state.accounts.filter((a) => !a.archived);

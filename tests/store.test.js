@@ -93,7 +93,7 @@ test('store: borrar una categoría mueve sus movimientos y quita su presupuesto'
   store.deleteCategory('catFunXXX', 'catFoodXX');
   const state = await reload();
   assert.equal(state.movements.find((m) => m.id === 'mov00008').categoryId, 'catFoodXX');
-  assert.ok(!state.budgets.some((b) => b.categoryId === 'catFunXXX'));
+  assert.ok(!state.budgets.some((b) => b.categoryIds?.includes('catFunXXX')), 'el presupuesto de solo esa categoría desaparece');
   assert.throws(() => store.deleteCategory('catSalary'), isValidation, 'debe quedar una categoría de ingresos');
   assert.throws(() => store.updateCategory('catSalary', { archived: true }), isValidation, 'debe quedar una activa');
 });
@@ -114,16 +114,23 @@ test('store: deudas con importe inicial, pagos y borrado en cascada', async () =
   assert.ok(!state.movements.some((m) => m.debtId === debt.id));
 });
 
-test('store: presupuestos (crear, cambiar y quitar)', async () => {
+test('store: presupuestos de varias categorías (crear, cambiar y quitar)', async () => {
   await setup();
-  store.setBudget('catFoodXX', 30000);
-  store.setBudget('catFoodXX', 35000);
-  assert.equal(store.getState().budgets.filter((b) => b.categoryId === 'catFoodXX').length, 1);
-  assert.equal(store.getState().budgets.find((b) => b.categoryId === 'catFoodXX').amount, 35000);
-  store.setBudget(null, null);
-  assert.ok(!store.getState().budgets.some((b) => b.categoryId === null));
-  assert.throws(() => store.setBudget('catSalary', 100), isValidation);
-  await reload();
+  const ocio = store.saveBudget({ name: 'Ocio', categoryIds: ['catFoodXX', 'catFunXXX'], amount: 30000 });
+  store.saveBudget({ id: ocio.id, name: 'Ocio y comida', categoryIds: ['catFoodXX', 'catFunXXX'], amount: 35000 });
+  let state = await reload();
+  assert.deepEqual(state.budgets.find((b) => b.id === ocio.id), { id: ocio.id, name: 'Ocio y comida', categoryIds: ['catFoodXX', 'catFunXXX'], amount: 35000 });
+  assert.throws(() => store.saveBudget({ categoryIds: null, amount: 100 }), isValidation, 'ya hay un total del mes');
+  assert.throws(() => store.saveBudget({ categoryIds: [], amount: 100 }), isValidation, 'sin categorías');
+  assert.throws(() => store.saveBudget({ categoryIds: ['catSalary'], amount: 100 }), isValidation, 'categoría de ingreso');
+  // Al borrar una categoría, sale de los presupuestos; los que se quedan sin ninguna desaparecen.
+  store.deleteCategory('catFunXXX', 'catFoodXX');
+  state = await reload();
+  assert.deepEqual(state.budgets.find((b) => b.id === ocio.id).categoryIds, ['catFoodXX']);
+  store.deleteBudget(ocio.id);
+  store.deleteBudget('budgetTot');
+  state = await reload();
+  assert.deepEqual(state.budgets, []);
 });
 
 test('store: programados (pendientes, sin duplicar, pausa y edición)', async () => {

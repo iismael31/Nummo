@@ -85,6 +85,7 @@ Ciclo de vida (`app/js/main.js`):
 
 Accesibilidad de la interfaz (`ui/focus.js`, `ui/sheet.js`, `ui/pinpad.js`):
 
+- **Sin teclado por sorpresa.** Ninguna hoja enfoca un campo al abrirse: el teclado solo aparece cuando la persona toca uno. El foco empieza en «Cancelar».
 - **Foco estable.** Al repintar una vista, el foco vuelve al mismo botón (se identifica por su tipo y su texto). Al cerrar una hoja vuelve al botón que la abrió o, si ya no existe, al título de la pantalla.
 - **Alertas seguras.** Las confirmaciones empiezan con el foco en «Cancelar», así que Intro o Espacio nunca confirman por error.
 - **Anuncios medidos.** Los cambios de paso al crear o cambiar el PIN se anuncian. La cuenta atrás por intentos fallidos se anuncia al empezar y al terminar, no cada segundo.
@@ -119,7 +120,8 @@ nummo/
 │       │   ├── backup.js     copia cifrada y CSV
 │       │   └── color.js      contraste WCAG y tonos de acento en OKLCH
 │       ├── ui/               infraestructura de interfaz (dom, componentes, hojas, avisos,
-│       │                     router, shell, gráficas, PWA, teclado PIN, iconos, formatos, tema)
+│       │                     router, shell, gráficas, PWA, teclado PIN, iconos, formatos, tema,
+│       │                     foco y Face ID/huella con WebAuthn)
 │       └── views/            pantallas y formularios
 ├── tests/                    ejecutor y tests del núcleo (abrir /tests/ en el navegador)
 ├── tools/
@@ -197,6 +199,8 @@ Después, cada `git push` a `main` vuelve a publicar automáticamente.
 
 ## 7. Modelo de datos
 
+Versión del esquema: **2** (`SCHEMA_VERSION`). Los datos y copias de la versión 1, con `categoryId` en los presupuestos, se convierten al leerlos; una versión más nueva se rechaza con un aviso para actualizar la app.
+
 Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las fechas son texto `AAAA-MM-DD` en hora local y los identificadores tienen 12 caracteres alfanuméricos.
 
 | Entidad | Campos |
@@ -204,7 +208,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 | **Account** | `id, name (≤40), type (bank\|card\|cash\|savings\|investment\|other), icon, letters (≤4), color, initial, includeInTotal, archived, order` |
 | **Category** | `id, kind (expense\|income), name, icon, color, archived, order` |
 | **Debt** | `id, kind (owe\|owed), name, note (≤140), dueDate \| null` |
-| **Budget** | `id, categoryId \| null (null = total del mes), amount` (mensual) |
+| **Budget** | `id, name (≤40, opcional), categoryIds \| null (null = total del mes), amount` (mensual). Una categoría puede estar en varios presupuestos; solo hay un total |
 | **Recurring** | `id, active, frequency (weekly\|monthly\|yearly), interval (1–12), startDate, index, endDate \| null, template` |
 | **Movement** | `id, date, type (expense\|income\|transfer\|debt), amount (>0), accountId, toAccountId (transfer), categoryId (expense/income), debtId + flow (add\|pay) (debt), note, recurringId?, ts` |
 | **Settings** | `autoLockSec (0\|60\|300\|900), lastBackupAt, lastAccountId, installHintDismissed` |
@@ -224,7 +228,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 - **Resumen del mes.**
   - Los movimientos de deuda **no** son gasto ni ingreso: van en «Deudas», y solo si pasaron por una cuenta.
   - Las transferencias no cuentan.
-- **Presupuestos.** Nivel `warn` al llegar al 80 % y `over` al superarse.
+- **Presupuestos.** Lo gastado es la suma de sus categorías (o de todo el gasto, en el total). Nivel `warn` al llegar al 80 % y `over` al superarse. Al borrar una categoría sale de sus presupuestos, y los que se quedan sin ninguna desaparecen.
 - **Programados.**
   - La ocurrencia *k* se calcula siempre desde la fecha de inicio, inicio + *k*·intervalo. Así no hay deriva: el día 31 cae el 28/29 de febrero y vuelve al 31 en marzo.
   - Se generan como mucho 500 por ejecución.
@@ -242,6 +246,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 |---|---|---|
 | `meta` | `vault` | `{ v, kdf: { name, hash, iterations, salt }, dek: { iv, ct } }`: la DEK cifrada con la clave derivada del PIN |
 | `meta` | `lockout` | `{ failures, until }` (sin cifrar; no es un secreto). Se actualiza en una sola transacción: varios intentos simultáneos cuentan todos |
+| `meta` | `biometric` | Solo si Face ID o la huella están activados: `{ v, credentialId, salt, dek: { iv, ct }, pinAt }`. La DEK cifrada con la clave que sale del secreto PRF de la llave de acceso |
 | `meta` | `revision` | Marca aleatoria de la última escritura. Cada guardado comprueba que sigue siendo la que esta ventana cargó; si otra ventana o pestaña escribió después, se rechaza (`ConflictError`) y la app se bloquea para recargar los datos |
 | `vault` | `core` | `{ iv, ct }`: cifrado de `{ version, settings, accounts, categories, debts, budgets, recurring }` |
 | `vault` | `mov-AAAA` | `{ iv, ct }`: cifrado de `{ movements }` de ese año |
@@ -280,6 +285,13 @@ Formato pensado para Excel en español:
   - Tras 5 fallos seguidos hay que esperar 30 s, el doble en cada fallo siguiente, hasta un máximo de 15 min.
   - La espera se guarda con la hora del dispositivo y, mientras la app sigue abierta, también con un reloj monotónico (`performance.now()`). Adelantar la hora no la acorta, y la cuenta atrás de la pantalla tampoco cambia.
   - Cambiar el PIN solo vuelve a cifrar la DEK.
+- **Face ID o huella (opcional, `ui/biometric.js` + `vault.js`).**
+  - Usa una llave de acceso del dispositivo (WebAuthn, `authenticatorAttachment: 'platform'`, `userVerification: 'required'`) con la extensión **PRF**: tras verificar a la persona, el dispositivo entrega un secreto de 32 bytes que depende de la llave y de una sal aleatoria guardada en `meta.biometric`.
+  - De ese secreto sale con HKDF-SHA-256 una clave AES-GCM que cifra una segunda copia de la DEK (AAD `nummo:bio-dek:v1`). Sin Face ID no hay secreto, y sin secreto esa copia no sirve. No hay servidor ni se comprueban firmas: la seguridad no depende de la aserción.
+  - Activarlo exige el PIN (que da la DEK en claro solo unos segundos y luego se borra) y un toque nuevo para crear la llave, porque el sistema lo exige.
+  - El PIN se pide igualmente cada 7 días (`PIN_REMINDER_MS`), también si la hora del dispositivo retrocede. Lo comprueba la propia caja fuerte, no solo la pantalla.
+  - Crear una caja nueva, restaurar al empezar o borrar los datos elimina `meta.biometric`. Cambiar el PIN no le afecta, porque la DEK es la misma. Al desactivarlo se avisa al llavero de que olvide la llave (Signal API), si el navegador lo permite.
+  - Requisitos: iOS 18+ (Safari) o Android con Chrome y el gestor de contraseñas de Google. Si no hay PRF, la opción no aparece o avisa al activarla.
 - **Bloqueo automático y privacidad.**
   - Se bloquea al pasar a segundo plano según el ajuste (por defecto, 1 minuto).
   - El tiempo fuera de la app se mide con el reloj del sistema y con un reloj monotónico. Si el reloj del sistema se atrasa, se bloquea igualmente.
@@ -324,6 +336,7 @@ Formato pensado para Excel en español:
 
 - **Un PIN de 6 cifras es débil frente a un ataque fuera de línea.** Si alguien extrajera la base de datos del dispositivo, podría probar todos los PIN. La protección fuerte en reposo la da el cifrado del propio sistema (bloqueo del iPhone/Android). Las copias usan contraseña larga por este motivo. Ver mejoras en `to-do.md`.
 - **Memoria y entorno de ejecución.** JavaScript no garantiza borrar datos de la memoria. Un atacante con control de la página (extensiones, depurador) podría leer los datos mientras la app está desbloqueada.
+- **Face ID o huella es tan seguro como la llave de acceso.** La llave se sincroniza con el llavero de la cuenta (iCloud o Google), pero la copia cifrada de la DEK solo existe en este dispositivo: otro aparato con la misma llave no tiene nada que abrir. Si alguien conoce el código de desbloqueo del móvil y puede registrar su cara o su huella, podría abrir la app, como cualquier otra app con Face ID.
 - **El límite de intentos se guarda en el propio dispositivo.** Solo frena intentos manuales. Si alguien cierra la app y adelanta la hora del dispositivo, la espera guardada se acorta: sin conexión no hay una hora fiable.
 
 ## 9. Decisiones de optimización
@@ -347,14 +360,14 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
 ## 10. Tests
 
 - **Ejecutar.** Arranca `python3 tools/serve.py` y abre http://127.0.0.1:8080/tests/. Usan una base de datos IndexedDB aparte, `nummo-test`.
-- **Qué cubren (74 tests).**
+- **Qué cubren (76 tests).**
   - Interpretación y formato de importes.
   - Fechas: bisiestos, anclaje de día y cambios de mes y año.
-  - Validación del modelo en modo estricto y de reparación, integridad referencial y saneado.
+  - Validación del modelo en modo estricto y de reparación, integridad referencial, saneado y conversión de datos de la versión 1.
   - Cálculos: saldos, deudas, patrimonio, resúmenes, presupuestos y series.
   - Programados: deriva, fin, pausa y tope.
   - Cifrado: ida y vuelta, AAD, manipulación y Base64.
-  - Caja fuerte: crear y desbloquear, nada legible en disco, límite de intentos y cambio de PIN.
+  - Caja fuerte: crear y desbloquear, nada legible en disco, límite de intentos, cambio de PIN y desbloqueo biométrico (secreto incorrecto, PIN cada 7 días, la hora que retrocede, cambio de PIN y desactivación).
   - Almacén: persistencia, cascadas, deshacer, programados y restauración.
   - Copias: ida y vuelta, contraseña incorrecta, archivos manipulados o inválidos y CSV.
   - Color: contraste WCAG, ida y vuelta OKLCH y legibilidad garantizada con 12 colores extremos en claro y oscuro.
@@ -367,6 +380,7 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
     - borrar una cuenta sin alterar el saldo de las demás;
     - corregir el tipo de una deuda;
     - la copia guarda su propia fecha como «última copia».
+  - Presupuestos de varias categorías: suma por meses, categorías compartidas, un solo total y limpieza al borrar categorías.
 - **Comprobaciones automáticas de código.** `python3 tools/release.py --check`, también en GitHub Actions.
 - **Pruebas manuales hechas en el navegador:**
   - recorrido completo con tamaño iPhone y Android, en modo claro y oscuro;
@@ -380,7 +394,8 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
 Los pendientes y mejoras propuestas están en **[to-do.md](to-do.md)**. Los principales:
 
 - Validar en un iPhone real el teclado sobre las hojas y el menú Compartir con archivos.
-- Desbloqueo con Face ID (WebAuthn PRF) y opción de contraseña alfanumérica.
+- Probar Face ID en un iPhone real: en el ordenador solo se ha probado con una llave de acceso simulada.
+- Opción de contraseña alfanumérica en lugar de PIN.
 - Importación de extractos bancarios, dividir gastos y sincronización opcional entre dispositivos.
 - Tamaño de letra dinámico de iOS y pantallas de arranque.
 - Los datos de Safari y los de la app instalada en iPhone son almacenes distintos, un comportamiento del sistema. La app avisa de ello.

@@ -62,18 +62,28 @@ export function debtRow(debt, totals, { onClick }) {
     h('span', { class: 'row-value' }, formatMoney(Math.max(totals.pending, 0)), h('small', null, `de ${formatMoney(totals.added)}`)));
 }
 
+/** Nombre de un presupuesto: el que le pusiste o, si no, sus categorías («Comida, Ocio»). */
+export function budgetName(b, look) {
+  if (b.categoryIds === null) return b.name || 'Total del mes';
+  return b.name || b.categoryIds.map((id) => look.categories.get(id)?.name ?? '').filter(Boolean).join(', ');
+}
+
 /**
  * Presupuesto con su barra: nivel (bien / al 80 % / superado), gastado, límite y lo que queda.
  * Con `onClick` es un botón (para editarlo).
  */
-export function budgetItem(b, category, { onClick = null } = {}) {
+export function budgetItem(b, look, { onClick = null } = {}) {
   const pct = `${Math.round(b.ratio * 100)} %`;
-  const name = category?.name ?? 'Total del mes';
+  const name = budgetName(b, look);
+  const categories = (b.categoryIds ?? []).map((id) => look.categories.get(id)).filter(Boolean);
+  const lead = categories.length === 1 ? tile(categories[0], 'sm') : tile({ icon: 'target', color: categories.length ? 'blue' : 'graphite' }, 'sm');
+  // Con nombre propio y varias categorías, se dice cuáles incluye.
+  const detail = b.name && categories.length ? categories.map((c) => c.name).join(', ') : null;
   return h(onClick ? 'button' : 'div', { type: onClick ? 'button' : null, class: ['budget', onClick && 'row'], onClick },
     h('span', { class: 'row-main' },
       h('span', { class: 'budget-top' },
-        category ? tile(category, 'sm') : tile({ icon: 'target', color: 'graphite' }, 'sm'),
-        h('span', { class: 'row-main row-title' }, name),
+        lead,
+        h('span', { class: 'row-main' }, h('span', { class: 'row-title' }, name), detail ? h('span', { class: 'row-sub' }, detail) : null),
         h('span', { class: ['badge', b.level === 'over' ? 'danger' : b.level === 'warn' ? 'warn' : 'ok'] }, b.level === 'over' ? 'Superado' : pct)),
       progress(b.ratio, b.level, `Gastado del presupuesto de ${name}: ${pct}`),
       h('span', { class: 'budget-meta' },

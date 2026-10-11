@@ -20,8 +20,8 @@ export function sampleState() {
       { id: 'debtOwedX', kind: 'owed', name: 'Laura', note: 'Cena', dueDate: '2026-12-01' },
     ],
     budgets: [
-      { id: 'budgetTot', categoryId: null, amount: 10000 },
-      { id: 'budgetFun', categoryId: 'catFunXXX', amount: 1500 },
+      { id: 'budgetTot', name: '', categoryIds: null, amount: 10000 },
+      { id: 'budgetFun', name: '', categoryIds: ['catFunXXX'], amount: 1500 },
     ],
     recurring: [],
     movements: [

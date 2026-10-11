@@ -118,12 +118,12 @@ export function budgetStatus(state, key) {
   const totalSpent = byCategory.reduce((sum, x) => sum + x.amount, 0);
   return state.budgets
     .map((b) => {
-      const spent = b.categoryId === null ? totalSpent : spentBy.get(b.categoryId) ?? 0;
+      const spent = b.categoryIds === null ? totalSpent : b.categoryIds.reduce((sum, id) => sum + (spentBy.get(id) ?? 0), 0);
       const ratio = spent / b.amount;
       const level = spent > b.amount ? 'over' : ratio >= BUDGET_WARN_RATIO ? 'warn' : 'ok';
       return { ...b, spent, remaining: b.amount - spent, ratio, level };
     })
-    .sort((a, b) => (a.categoryId === null ? -1 : b.categoryId === null ? 1 : b.ratio - a.ratio));
+    .sort((a, b) => (a.categoryIds === null ? -1 : b.categoryIds === null ? 1 : b.ratio - a.ratio));
 }
 
 const monthRange = (endKey, count) => Array.from({ length: count }, (_, i) => addMonthKey(endKey, i - count + 1));

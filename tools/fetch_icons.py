@@ -28,7 +28,7 @@ ICONS = [
     "repeat", "target", "lock", "lock-open", "shield-lock", "key", "download", "upload",
     "file-spreadsheet", "settings", "info-circle", "alert-triangle", "eye", "eye-off",
     "backspace", "share-2", "square-plus", "device-mobile", "refresh", "archive",
-    "circle-check", "help-circle", "letter-case", "clock", "user",
+    "circle-check", "help-circle", "letter-case", "clock", "user", "face-id", "fingerprint",
     # Selector de cuentas y categorías
     "shopping-cart", "basket", "tools-kitchen-2", "coffee", "pizza", "beer", "glass-full",
     "bus", "car", "gas-station", "parking", "train", "plane", "bike", "motorbike",

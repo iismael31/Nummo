@@ -118,7 +118,6 @@ export function openDebtForm({ debt = null, kind = 'owe' } = {}) {
     body,
     primary: { label: 'Guardar', onClick: save },
     tall: true,
-    focus: editing ? null : name,
   });
 }
 
@@ -198,6 +197,5 @@ export function openDebtMovementForm({ debt, flow = 'pay', movement = null }) {
     body,
     primary: { label: 'Guardar', onClick: save },
     tall: true,
-    focus: editing ? null : amount.input,
   });
 }

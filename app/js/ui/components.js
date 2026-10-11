@@ -157,17 +157,32 @@ export function chipPicker(items, selected, onSelect, { label, none = null } = {
   return el;
 }
 
-/** Cuadrícula de categorías. */
-export function categoryGrid(categories, selected, onSelect, { label = 'Categoría' } = {}) {
+/**
+ * Cuadrícula de categorías.
+ * - multiple: `selected` es un Set de ids y se pueden marcar varias; onSelect recibe el Set nuevo.
+ * - onCreate: añade al final la casilla «Nueva» (crear una categoría sin salir del formulario).
+ */
+export function categoryGrid(categories, selected, onSelect, { label = 'Categoría', multiple = false, onCreate = null } = {}) {
   const el = h('div', { class: 'pick-grid', role: 'group', 'aria-label': label });
+  const chosen = new Set(multiple ? selected : [selected]);
   for (const category of categories) {
-    const button = h('button', { type: 'button', class: 'pick', 'aria-pressed': String(category.id === selected) },
+    const button = h('button', { type: 'button', class: 'pick', 'aria-pressed': String(chosen.has(category.id)) },
       tile(category), h('span', null, category.name));
     button.addEventListener('click', () => {
-      for (const b of el.children) b.setAttribute('aria-pressed', String(b === button));
+      if (multiple) {
+        if (!chosen.delete(category.id)) chosen.add(category.id);
+        button.setAttribute('aria-pressed', String(chosen.has(category.id)));
+        onSelect(new Set(chosen));
+        return;
+      }
+      for (const b of el.querySelectorAll('[aria-pressed]')) b.setAttribute('aria-pressed', String(b === button));
       onSelect(category.id);
     });
     el.append(button);
+  }
+  if (onCreate) {
+    el.append(h('button', { type: 'button', class: 'pick pick-new', onClick: onCreate },
+      h('span', { class: 'tile', 'aria-hidden': 'true' }, icon('plus')), h('span', null, 'Nueva')));
   }
   return el;
 }

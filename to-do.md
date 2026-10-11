@@ -31,8 +31,10 @@
       Justificación: accesibilidad; requiere revisar todos los tamaños fijos.
 - [ ] 🟢 [funcionalidad] Pantallas de arranque (splash) de iOS con apple-touch-startup-image.
       Justificación: hoy iOS muestra un fondo liso mientras carga (es breve).
-- [ ] 🟡 [seguridad] Desbloqueo con Face ID mediante passkey (WebAuthn + extensión PRF), manteniendo el PIN como respaldo.
-      Justificación: más cómodo sin rebajar el cifrado; requiere iOS 18+ y pruebas en un iPhone real.
+- [ ] 🔴 [seguridad] Probar Face ID en el iPhone real: activarlo en Más → Seguridad, cerrar la app, abrirla con
+      Face ID, cancelar y entrar con el PIN, y desactivarlo. Comprobar también que la llave «Nummo» aparece en
+      Ajustes → Contraseñas.
+      Justificación: en el ordenador solo se ha probado con una llave de acceso simulada (no hay Face ID).
 - [ ] 🟢 [seguridad] Opción de contraseña alfanumérica en lugar de PIN de 6 dígitos.
       Justificación: un PIN numérico es débil frente a un ataque técnico al almacenamiento; una contraseña larga no.
 - [ ] 🟢 [funcionalidad] Importar extractos bancarios (CSV).
@@ -43,6 +45,10 @@
       Justificación: hoy cada instalación es independiente; requeriría un servidor y cuentas de usuario.
 
 ## Completados
+
+- [x] 2026-10-11 — El teclado ya no se abre solo al entrar en un formulario; «+ Nueva» para crear una categoría
+      sin salir del formulario; presupuestos de varias categorías (esquema v2); desbloqueo con Face ID o huella
+      (WebAuthn PRF) con PIN obligatorio cada 7 días.
 
 - [x] 2026-10-05 — Nuevo nombre y logo: Nummo (iconos vectoriales a partir del logo; nombre en app, archivos y documentación).
 

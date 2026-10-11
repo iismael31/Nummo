@@ -7,7 +7,7 @@ import { isISODate } from './dates.js';
 import { cleanText, cleanLetters } from './text.js';
 import {
   COLOR_KEYS, PICKER_ICONS, ACCOUNT_TYPE_KEYS, accountTypeInfo,
-  DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, AUTO_LOCK_OPTIONS, DEFAULT_AUTO_LOCK,
+  DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, AUTO_LOCK_OPTIONS, DEFAULT_AUTO_LOCK, HOME_PANEL_KEYS, DEFAULT_HOME_PANELS,
 } from './catalog.js';
 
 // 2: presupuestos con varias categorías (`categoryIds`). Los datos de la versión 1 se convierten al leerlos.
@@ -181,6 +181,10 @@ export function normalizeSettings(raw) {
     lastBackupAt: Number.isSafeInteger(s.lastBackupAt) && s.lastBackupAt > 0 ? s.lastBackupAt : null,
     lastAccountId: isId(s.lastAccountId) ? s.lastAccountId : null,
     installHintDismissed: s.installHintDismissed === true,
+    // Paneles visibles en Inicio, en orden (solo claves conocidas y sin repetir).
+    homePanels: Array.isArray(s.homePanels)
+      ? [...new Set(s.homePanels.filter((key) => HOME_PANEL_KEYS.includes(key)))]
+      : [...DEFAULT_HOME_PANELS],
   };
 }
 

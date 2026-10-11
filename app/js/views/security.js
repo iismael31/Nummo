@@ -87,7 +87,7 @@ function openEnableBiometric() {
       title.textContent = `Ahora confirma ${t.with}`;
       const button = h('button', { type: 'button', class: 'btn primary', onClick: () => activate(button) }, `Activar ${t.name}`);
       replace(content,
-        h('p', { class: 'help' }, `Se creará una llave de acceso para Nummo en este móvil. Solo sirve para abrir la app ${t.with}.`),
+        h('p', { class: 'help' }, `Las apps web solo pueden usar ${t.use} con una «llave de acceso»: se guardará una de Nummo en tu llavero (la verás en Ajustes → Contraseñas). No contiene tus datos ni tu PIN y, sin ${t.use} y este móvil, no sirve para nada.`),
         button,
         status);
     },

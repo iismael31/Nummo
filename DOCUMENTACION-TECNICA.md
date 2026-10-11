@@ -211,7 +211,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 | **Budget** | `id, name (≤40, opcional), categoryIds \| null (null = total del mes), amount` (mensual). Una categoría puede estar en varios presupuestos; solo hay un total |
 | **Recurring** | `id, active, frequency (weekly\|monthly\|yearly), interval (1–12), startDate, index, endDate \| null, template` |
 | **Movement** | `id, date, type (expense\|income\|transfer\|debt), amount (>0), accountId, toAccountId (transfer), categoryId (expense/income), debtId + flow (add\|pay) (debt), note, recurringId?, ts` |
-| **Settings** | `autoLockSec (0\|60\|300\|900), lastBackupAt, lastAccountId, installHintDismissed` |
+| **Settings** | `autoLockSec (0\|60\|300\|900), lastBackupAt, lastAccountId, installHintDismissed, homePanels` (claves de `HOME_PANELS` en orden; las que no están se ocultan) |
 
 `icon`, `color` y `type` son claves de listas blancas definidas en `catalog.js`, así que nunca se guardan colores ni SVG libres.
 
@@ -228,6 +228,8 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 - **Resumen del mes.**
   - Los movimientos de deuda **no** son gasto ni ingreso: van en «Deudas», y solo si pasaron por una cuenta.
   - Las transferencias no cuentan.
+- **Periodos.** `periodSummary` y `totalsByCategory` aceptan un mes `AAAA-MM` o un año `AAAA` (`periodBounds` en `dates.js`). Análisis tiene modo Mes y modo Año; en el año, la media mensual divide entre los meses transcurridos (12 si el año ya pasó).
+- **Inicio.** Cada panel es una función de `PANELS` en `views/home.js`; el catálogo (clave, nombre, ayuda) está en `HOME_PANELS` de `catalog.js` y el orden visible en `settings.homePanels`. Los avisos (versión, copia, instalación) van siempre arriba.
 - **Presupuestos.** Lo gastado es la suma de sus categorías (o de todo el gasto, en el total). Nivel `warn` al llegar al 80 % y `over` al superarse. Al borrar una categoría sale de sus presupuestos, y los que se quedan sin ninguna desaparecen.
 - **Programados.**
   - La ocurrencia *k* se calcula siempre desde la fecha de inicio, inicio + *k*·intervalo. Así no hay deriva: el día 31 cae el 28/29 de febrero y vuelve al 31 en marzo.
@@ -360,11 +362,12 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
 ## 10. Tests
 
 - **Ejecutar.** Arranca `python3 tools/serve.py` y abre http://127.0.0.1:8080/tests/. Usan una base de datos IndexedDB aparte, `nummo-test`.
-- **Qué cubren (76 tests).**
+- **Qué cubren (77 tests).**
   - Interpretación y formato de importes.
   - Fechas: bisiestos, anclaje de día y cambios de mes y año.
   - Validación del modelo en modo estricto y de reparación, integridad referencial, saneado y conversión de datos de la versión 1.
-  - Cálculos: saldos, deudas, patrimonio, resúmenes, presupuestos y series.
+  - Cálculos: saldos, deudas, patrimonio, resúmenes de mes y de año, presupuestos y series.
+  - Paneles de Inicio: solo claves conocidas, sin repetir, y los de siempre por defecto.
   - Programados: deriva, fin, pausa y tope.
   - Cifrado: ida y vuelta, AAD, manipulación y Base64.
   - Caja fuerte: crear y desbloquear, nada legible en disco, límite de intentos, cambio de PIN y desbloqueo biométrico (secreto incorrecto, PIN cada 7 días, la hora que retrocede, cambio de PIN y desactivación).

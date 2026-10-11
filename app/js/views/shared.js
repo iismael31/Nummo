@@ -4,6 +4,7 @@ import { h } from '../ui/dom.js';
 import { icon } from '../ui/icons.js';
 import { row, tile, progress } from '../ui/components.js';
 import { describeMovement, dueText } from '../ui/format.js';
+import { donutChart } from '../ui/charts.js';
 import { formatMoney } from '../core/money.js';
 import { accountTypeInfo, COLOR_KEYS } from '../core/catalog.js';
 import { openMovementForm } from './movement-form.js';
@@ -103,4 +104,34 @@ export function moveButtons(items, index, reorder) {
   return h('span', { class: 'toolbar' },
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Subir ${name}`, disabled: index === 0, onClick: () => move(-1) }, icon('arrow-up')),
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Bajar ${name}`, disabled: index === items.length - 1, onClick: () => move(1) }, icon('arrow-down')));
+}
+
+const MAX_SEGMENTS = 6; // 5 categorías + «Otras»
+
+/**
+ * Reparto por categoría: gráfico circular y lista con importe y porcentaje.
+ * totals: [{ categoryId, amount }] de mayor a menor. Con `onSelect(categoryId)` cada fila es un botón.
+ * `limit`: cuántas filas mostrar en la lista (por defecto, todas).
+ */
+export function categoryShare(totals, look, { centerLabel, onSelect = null, limit = Infinity }) {
+  const total = totals.reduce((sum, x) => sum + x.amount, 0);
+  const info = (id) => look.categories.get(id) ?? { name: 'Sin categoría', icon: 'tag', color: 'gray' };
+  const top = totals.slice(0, MAX_SEGMENTS - 1);
+  const rest = totals.slice(MAX_SEGMENTS - 1);
+  const segments = top.map((x) => ({ label: info(x.categoryId).name, value: x.amount, tone: info(x.categoryId).color }));
+  if (rest.length) segments.push({ label: 'Otras', value: rest.reduce((sum, x) => sum + x.amount, 0), tone: 'gray' });
+  const pct = (value) => `${Math.round((value / total) * 100)} %`;
+  const legend = h('ul', { class: 'share-list' }, totals.slice(0, limit).map((x) => {
+    const category = info(x.categoryId);
+    const content = [tile(category, 'sm'), h('span', { class: 'name' }, category.name), h('span', { class: 'val' }, `${formatMoney(x.amount)} · ${pct(x.amount)}`)];
+    return h('li', null, onSelect
+      ? h('button', { type: 'button', onClick: () => onSelect(x.categoryId), 'aria-label': `${category.name}: ${formatMoney(x.amount)}, ${pct(x.amount)}. Ver movimientos` }, content)
+      : h('div', { class: 'share-row' }, content));
+  }));
+  return [
+    h('div', { class: 'donut-wrap' },
+      donutChart(segments, { total, centerLabel }),
+      rest.length ? h('p', { class: 'help' }, `Las ${rest.length} categorías más pequeñas se agrupan en «Otras» (gris).`) : null),
+    legend,
+  ];
 }

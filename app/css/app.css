@@ -598,6 +598,8 @@ dialog.alert[open] { animation: alert-in 0.2s ease-out; }
   color: #F2EFEB;
 }
 .app-mark .icon { width: 42px; height: 42px; }
+.quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.quick-actions .btn { flex-direction: column; gap: 4px; padding: 12px 4px; font-size: 14px; }
 .bio-unlock { display: grid; gap: 6px; justify-items: center; width: 100%; }
 .bio-unlock:empty { display: none; }
 .benefits { display: grid; gap: 14px; width: 100%; padding: 4px 0; margin: 0; list-style: none; text-align: left; }
@@ -663,7 +665,7 @@ html.private body { background: var(--bg) url("../icons/icon.svg") center / 72px
 .donut-wrap { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 16px; align-items: center; }
 @media (max-width: 359px) { .donut-wrap { grid-template-columns: 1fr; justify-items: center; } }
 .share-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; min-width: 0; }
-.share-list button { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 0; border: 0; background: none; text-align: left; font-size: 14px; }
+.share-list button, .share-list .share-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 0; border: 0; background: none; text-align: left; font-size: 14px; }
 .share-list .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .share-list .val { font-variant-numeric: tabular-nums; color: var(--text-2); }
 .chart-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--text-2); }

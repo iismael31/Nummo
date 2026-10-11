@@ -1,7 +1,7 @@
 import { test, assert } from './runner.js';
 import {
   daysInMonth, parseISO, isISODate, isMonthKey, addDays, addMonths, addYears, addMonthKey,
-  monthBounds, diffDays, todayISO, monthKey,
+  monthBounds, periodBounds, diffDays, todayISO, monthKey,
 } from '../app/js/core/dates.js';
 
 test('dates: días por mes y años bisiestos', () => {
@@ -43,6 +43,8 @@ test('dates: claves de mes, límites y diferencias', () => {
   assert.equal(addMonthKey('2026-12', 1), '2027-01');
   assert.equal(addMonthKey('2026-10', -12), '2025-10');
   assert.deepEqual(monthBounds('2024-02'), { start: '2024-02-01', end: '2024-02-29' });
+  assert.deepEqual(periodBounds('2024'), { start: '2024-01-01', end: '2024-12-31' });
+  assert.deepEqual(periodBounds('2024-02'), monthBounds('2024-02'));
   assert.equal(diffDays('2026-01-01', '2026-03-01'), 59);
   assert.equal(diffDays('2026-03-01', '2026-01-01'), -59);
   assert.equal(todayISO(new Date(2026, 9, 5, 23, 59)), '2026-10-05');

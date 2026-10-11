@@ -1,7 +1,7 @@
 // Cálculos derivados: saldos, deudas, resúmenes mensuales, presupuestos y series para gráficas.
 // Funciones puras: leen el estado y nunca lo modifican. Todas son de una sola pasada, O(n).
 
-import { addMonthKey, monthBounds, monthKey } from './dates.js';
+import { addMonthKey, monthBounds, monthKey, periodBounds } from './dates.js';
 
 /**
  * Signo del efecto de un movimiento de deuda sobre la cuenta vinculada:
@@ -76,11 +76,12 @@ export function summarize(state) {
 }
 
 /**
- * Resumen de un mes 'AAAA-MM'. Los movimientos de deuda no son gasto ni ingreso: se muestran
- * aparte (debtIn/debtOut) y solo cuentan si pasaron por una cuenta. Las transferencias no cuentan.
+ * Resumen de un periodo: un mes 'AAAA-MM' o un año 'AAAA'. Los movimientos de deuda no son gasto ni
+ * ingreso: se muestran aparte (debtIn/debtOut) y solo cuentan si pasaron por una cuenta. Las
+ * transferencias no cuentan.
  */
-export function monthSummary(state, key) {
-  const { start, end } = monthBounds(key);
+export function periodSummary(state, key) {
+  const { start, end } = periodBounds(key);
   const kinds = debtKinds(state);
   let income = 0;
   let expense = 0;
@@ -98,9 +99,9 @@ export function monthSummary(state, key) {
   return { income, expense, debtIn, debtOut, debtNet: debtIn - debtOut, result: income - expense + debtIn - debtOut };
 }
 
-/** Total por categoría en un mes, de mayor a menor. type: 'expense' | 'income'. */
+/** Total por categoría en un mes o un año, de mayor a menor. type: 'expense' | 'income'. */
 export function totalsByCategory(state, key, type = 'expense') {
-  const { start, end } = monthBounds(key);
+  const { start, end } = periodBounds(key);
   const totals = new Map();
   for (const m of state.movements) {
     if (m.type !== type || m.date < start || m.date > end) continue;
@@ -181,7 +182,7 @@ export function createDerived(state) {
       summary ??= summarize(state);
       return summary;
     },
-    month: (key) => cached(`m:${key}`, () => monthSummary(state, key)),
+    period: (key) => cached(`p:${key}`, () => periodSummary(state, key)),
     byCategory: (key, type = 'expense') => cached(`c:${type}:${key}`, () => totalsByCategory(state, key, type)),
     budgets: (key) => cached(`b:${key}`, () => budgetStatus(state, key)),
     monthly: (endKey, count) => cached(`s:${endKey}:${count}`, () => monthlySeries(state, endKey, count)),

@@ -53,6 +53,16 @@ A partir de ahora, cada vez que abras la app te pedirá el PIN.
 
 ## Cómo hacer las tareas principales
 
+### Personalizar Inicio
+
+En **Inicio**, pulsa **Editar** (arriba a la derecha):
+
+- **Quita** un panel con la ✕ y **ordénalos** con las flechas.
+- En **Más paneles** puedes **añadir**: ritmo de gasto (media diaria y previsión del mes), deudas, gastos por categoría, gráficas de ingresos y gastos y del patrimonio, resumen del año, mayores gastos del mes y accesos rápidos para apuntar.
+- **Volver a los paneles de siempre** deja Inicio como al principio.
+
+Los avisos importantes (versión nueva, copia de seguridad) siempre salen arriba. Tu Inicio se guarda en la copia de seguridad.
+
 ### Apuntar un gasto o un ingreso
 
 1. Pulsa el botón azul **+** (abajo a la derecha).
@@ -120,13 +130,22 @@ La barra se pone **ámbar** al llegar al 80 % y **roja** si te pasas. Los presup
 
 ### Análisis y gráficas
 
-En **Análisis** (cambia de mes con las flechas):
+En **Análisis**, elige arriba **Mes** o **Año** y cambia de mes o de año con las flechas.
+
+En **Mes**:
 
 - **Ingresos, gastos, ahorro** y **tasa de ahorro** del mes.
 - **Por categoría**: en qué gastas (o de dónde ingresas), con porcentajes. Toca una categoría para ver sus movimientos.
 - **Presupuestos** del mes.
 - **Ingresos y gastos** de los últimos 12 meses: toca una columna para ver sus cifras.
 - **Patrimonio neto**: cómo evoluciona lo que tienes. Se calcula así: saldo de tus cuentas − lo que debes + lo que te deben.
+
+En **Año**:
+
+- Ingresos, gastos, ahorro y tasa de ahorro del año, con la **media al mes**.
+- **Por categoría** del año entero.
+- **Ingresos y gastos** de enero a diciembre y la lista **Mes a mes**: toca un mes para ver su análisis.
+- **Patrimonio neto** a final de cada mes del año.
 
 Cada gráfica tiene un enlace **Ver tabla** con las cifras exactas.
 
@@ -173,7 +192,7 @@ Elige el archivo `nummo-copia-….json`, escribe su contraseña y confirma. Rest
 En **Más → Seguridad** puedes:
 
 - **Cambiar el PIN**: primero te pide el actual.
-- Activar **Desbloquear con Face ID** (o con tu huella en Android): te pide el PIN y luego Face ID para crear una «llave de acceso» de Nummo en el móvil. A partir de ahí, al abrir la app te pedirá Face ID; si falla o lo cancelas, escribes el PIN como siempre. **Cada 7 días te pedirá el PIN igualmente**, para que no lo olvides. Necesita iOS 18 o posterior; si tu móvil no lo permite, la opción no aparece.
+- Activar **Desbloquear con Face ID** (o con tu huella en Android): te pide el PIN y luego Face ID para crear una «llave de acceso» de Nummo en el móvil. Las apps web solo pueden usar Face ID así; la llave aparece en **Ajustes → Contraseñas**, no contiene tus datos ni tu PIN y sola no sirve para nada. A partir de ahí, al abrir la app te pedirá Face ID; si falla o lo cancelas, escribes el PIN como siempre. **Cada 7 días te pedirá el PIN igualmente**, para que no lo olvides. Necesita iOS 18 o posterior; si tu móvil no lo permite, la opción no aparece.
 - Elegir el **bloqueo automático**: cuánto tiempo puede estar la app en segundo plano antes de volver a pedir el PIN (inmediatamente, 1, 5 o 15 minutos).
 - **Bloquearla ahora**.
 

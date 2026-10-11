@@ -1,7 +1,7 @@
 import { test, assert } from './runner.js';
 import { sampleState } from './fixtures.js';
 import {
-  computeBalances, computeDebtTotals, summarize, monthSummary, totalsByCategory, budgetStatus,
+  computeBalances, computeDebtTotals, summarize, periodSummary, totalsByCategory, budgetStatus,
   monthlySeries, netWorthSeries, debtAccountSign, createDerived,
 } from '../app/js/core/finance.js';
 
@@ -36,11 +36,17 @@ test('finance: totales y patrimonio neto (cuentas excluidas no cuentan)', () => 
 });
 
 test('finance: resumen mensual (las deudas van aparte y las transferencias no cuentan)', () => {
-  assert.deepEqual(monthSummary(sampleState(), '2026-10'), {
+  assert.deepEqual(periodSummary(sampleState(), '2026-10'), {
     income: 200000, expense: 2000, debtIn: 30000, debtOut: 14000, debtNet: 16000, result: 214000,
   });
-  assert.equal(monthSummary(sampleState(), '2026-09').result, -5000);
-  assert.equal(monthSummary(sampleState(), '2026-08').result, 0);
+  assert.equal(periodSummary(sampleState(), '2026-09').result, -5000);
+  assert.equal(periodSummary(sampleState(), '2026-08').result, 0);
+  // El año suma todos sus meses (septiembre + octubre).
+  const year = periodSummary(sampleState(), '2026');
+  assert.equal(year.income, 200000);
+  assert.equal(year.expense, 7000);
+  assert.deepEqual(totalsByCategory(sampleState(), '2026'), [{ categoryId: 'catFoodXX', amount: 5000 }, { categoryId: 'catFunXXX', amount: 2000 }]);
+  assert.equal(periodSummary(sampleState(), '2025').expense, 0);
 });
 
 test('finance: gastos por categoría y presupuestos', () => {
@@ -82,7 +88,7 @@ test('finance: series mensuales y de patrimonio', () => {
 test('finance: los cálculos derivados se cachean por versión', () => {
   const d = createDerived(sampleState());
   assert.ok(d.summary === d.summary);
-  assert.ok(d.month('2026-10') === d.month('2026-10'));
+  assert.ok(d.period('2026-10') === d.period('2026-10'));
   assert.equal(d.budgets('2026-10').length, 2);
 });
 

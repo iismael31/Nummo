@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-10-11 — Inicio personalizable, Análisis anual y aclaración de Face ID
+
+Tipo: decisión | cambio
+
+Qué se hizo:
+- Face ID: la persona propietaria preguntó por usarlo sin llave de acceso. Una app web solo puede usar
+  Face ID mediante WebAuthn (llaves de acceso); el Face ID nativo exige una app nativa (Xcode, cuenta de
+  desarrollador, TestFlight/App Store). Decisión: mantener la llave. La hoja de activación y la guía
+  explican qué es la llave, dónde aparece (Ajustes → Contraseñas) y que no contiene datos ni el PIN.
+- Inicio: paneles configurables (settings.homePanels, catálogo HOME_PANELS). Además de los 6 de siempre:
+  ritmo de gasto (media diaria y previsión), deudas, gastos por categoría, gráfica de ingresos y gastos
+  (6 meses), evolución del patrimonio (12 meses), resumen del año, mayores gastos del mes y accesos
+  rápidos. Botón «Editar» con mover (flechas), quitar, añadir y volver a los de siempre.
+- Análisis: selector Mes / Año. Modo año con selector de año, resumen y media mensual, categorías del
+  año, ingresos y gastos de enero a diciembre, lista mes a mes (abre el mes) y patrimonio por mes.
+- finance.monthSummary → periodSummary (mes o año); dates.periodBounds/isYearKey; categoryShare
+  compartido entre Análisis e Inicio; componente yearNav.
+
+Por qué:
+Peticiones de la persona propietaria.
+
+Archivos / recursos afectados:
+- app/js/core/catalog.js, model.js, finance.js, dates.js
+- app/js/ui/components.js
+- app/js/views/home.js, stats.js, shared.js, security.js
+- app/css/app.css, tests/finance.test.js, dates.test.js, model.test.js
+- GUIA-DE-USO.md, DOCUMENTACION-TECNICA.md, to-do.md
+
+Verificación:
+- 77/77 tests (resumen anual, reparto anual, límites de periodo, normalización de paneles).
+- En el navegador con datos de 10 meses: los 14 paneles se pintan sin errores; el editor mueve (y
+  mantiene el foco), quita, añade y restablece; Análisis por año muestra media de 10 meses, 10 meses en
+  la lista y al tocar uno abre su mes; un año pasado y uno futuro se muestran bien.
+
+---
+
 ## 2026-10-11 — Teclado automático, «+ Nueva» categoría, presupuestos múltiples y Face ID
 
 Tipo: cambio | seguridad | incidencia

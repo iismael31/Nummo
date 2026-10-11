@@ -255,6 +255,18 @@ export function monthNav(key, onChange) {
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Mes siguiente', onClick: () => onChange(addMonthKey(key, 1)) }, icon('chevron-right')));
 }
 
+/** Selector de año 'AAAA' con flechas y vuelta al año actual. */
+export function yearNav(year, onChange) {
+  const current = currentMonthKey().slice(0, 4);
+  const shift = (n) => onChange(String(Number(year) + n));
+  return h('div', { class: 'month-nav' },
+    h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Año anterior', disabled: Number(year) <= MIN_YEAR, onClick: () => shift(-1) }, icon('chevron-left')),
+    h('div', { class: 'label' },
+      h('div', { 'aria-live': 'polite' }, `Año ${year}`),
+      year !== current ? h('button', { type: 'button', class: 'btn-text today', onClick: () => onChange(current) }, 'Volver al año actual') : null),
+    h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Año siguiente', disabled: Number(year) >= MAX_YEAR, onClick: () => shift(1) }, icon('chevron-right')));
+}
+
 /** Aviso destacado. actions: [{ label, onClick, primary }] */
 export function notice({ iconName = 'info-circle', title = null, text = null, kind = '', actions = [] }) {
   return h('div', { class: ['notice', kind] },

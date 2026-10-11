@@ -2,8 +2,9 @@ import { test, assert } from './runner.js';
 import { sampleState } from './fixtures.js';
 import {
   normalizeData, normalizeAccount, normalizeCategory, normalizeRecurring, createInitialState,
-  ValidationError, SCHEMA_VERSION, allBucketKeys, buildBucket, mergeBuckets, movementBucket,
+  ValidationError, SCHEMA_VERSION, allBucketKeys, buildBucket, mergeBuckets, movementBucket, normalizeSettings,
 } from '../app/js/core/model.js';
+import { DEFAULT_HOME_PANELS } from '../app/js/core/catalog.js';
 import { cleanText, cleanLetters, foldText } from '../app/js/core/text.js';
 
 const isValidation = (e) => e instanceof ValidationError;
@@ -129,4 +130,11 @@ test('model: los bloques por año reconstruyen exactamente los datos', () => {
   const sortById = (list) => [...list].sort((a, b) => a.id.localeCompare(b.id));
   assert.deepEqual(sortById(merged.movements), sortById(state.movements));
   assert.throws(() => mergeBuckets(new Map([['mov-2026', { movements: [] }]])), isValidation, 'sin bloque core');
+});
+
+test('model: paneles de Inicio (solo los conocidos, sin repetir; por defecto, los de siempre)', () => {
+  assert.deepEqual(normalizeSettings({}).homePanels, DEFAULT_HOME_PANELS);
+  assert.deepEqual(normalizeSettings({ homePanels: ['debts', 'script', 'debts', 'networth'] }).homePanels, ['debts', 'networth']);
+  assert.deepEqual(normalizeSettings({ homePanels: [] }).homePanels, [], 'se puede dejar Inicio vacío');
+  assert.deepEqual(normalizeSettings({ homePanels: 'debts' }).homePanels, DEFAULT_HOME_PANELS);
 });

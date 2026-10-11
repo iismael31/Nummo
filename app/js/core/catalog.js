@@ -94,3 +94,24 @@ export const AUTO_LOCK_OPTIONS = [
   { seconds: 900, label: 'Tras 15 minutos' },
 ];
 export const DEFAULT_AUTO_LOCK = 60;
+
+/** Paneles que se pueden poner en Inicio (en este orden aparecen en «Más paneles»). */
+export const HOME_PANELS = [
+  { key: 'networth', label: 'Patrimonio neto', help: 'Tu total, lo que hay en cuentas, lo que debes y lo que te deben.' },
+  { key: 'month', label: 'Este mes', help: 'Ingresos, gastos y resultado del mes.' },
+  { key: 'pace', label: 'Ritmo de gasto', help: 'Lo gastado, la media al día y la previsión para final de mes.' },
+  { key: 'budgets', label: 'Presupuestos', help: 'Cómo vas con tus límites del mes.' },
+  { key: 'accounts', label: 'Cuentas', help: 'El saldo de cada cuenta.' },
+  { key: 'debts', label: 'Deudas', help: 'Lo que debes, lo que te deben y las fechas límite.' },
+  { key: 'categories', label: 'Gastos por categoría', help: 'En qué gastas este mes, con su gráfico.' },
+  { key: 'cashflow', label: 'Ingresos y gastos', help: 'Gráfica de los últimos 6 meses.' },
+  { key: 'networthChart', label: 'Evolución del patrimonio', help: 'Gráfica de los últimos 12 meses.' },
+  { key: 'year', label: 'Resumen del año', help: 'Ingresos, gastos y ahorro del año en curso.' },
+  { key: 'topExpenses', label: 'Mayores gastos del mes', help: 'Los 5 gastos más grandes del mes.' },
+  { key: 'upcoming', label: 'Próximos programados', help: 'Lo que se apuntará solo en los próximos 14 días.' },
+  { key: 'recent', label: 'Últimos movimientos', help: 'Lo último que has apuntado.' },
+  { key: 'quick', label: 'Accesos rápidos', help: 'Botones para apuntar un gasto, un ingreso o una transferencia.' },
+];
+export const HOME_PANEL_KEYS = HOME_PANELS.map((p) => p.key);
+/** Lo que se ve en Inicio al empezar (el diseño de siempre). */
+export const DEFAULT_HOME_PANELS = ['networth', 'month', 'budgets', 'accounts', 'upcoming', 'recent'];

@@ -46,6 +46,10 @@
 
 ## Completados
 
+- [x] 2026-10-11 — Inicio personalizable (14 paneles: mostrar, ocultar y ordenar) y Análisis por año
+      (resumen, media mensual, categorías, mes a mes y patrimonio). Face ID se mantiene con llave de acceso
+      (única vía para apps web; decisión de la persona propietaria) y la app explica qué es esa llave.
+
 - [x] 2026-10-11 — El teclado ya no se abre solo al entrar en un formulario; «+ Nueva» para crear una categoría
       sin salir del formulario; presupuestos de varias categorías (esquema v2); desbloqueo con Face ID o huella
       (WebAuthn PRF) con PIN obligatorio cada 7 días.

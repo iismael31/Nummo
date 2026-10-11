@@ -89,6 +89,13 @@ export function monthBounds(key) {
   return { start: toISO(y, m, 1), end: toISO(y, m, daysInMonth(y, m)) };
 }
 
+/** Un periodo es un mes 'AAAA-MM' o un año 'AAAA'. */
+export const isYearKey = (key) => /^\d{4}$/.test(key);
+
+export function periodBounds(key) {
+  return isYearKey(key) ? { start: `${key}-01-01`, end: `${key}-12-31` } : monthBounds(key);
+}
+
 /** Objeto Date a mediodía local (para formatear con Intl sin sorpresas de horario de verano). */
 export function toLocalDate(iso) {
   const { y, m, d } = parseISO(iso);

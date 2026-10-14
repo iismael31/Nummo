@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-10-14 — Comentarios automáticos de gastos, ahorro y presupuestos
+
+Tipo: cambio
+
+Qué se hizo:
+- Propuesta de la persona propietaria: llevar los consejos del análisis de las huchas al resto del dinero.
+  Decisiones: en Análisis (mes y año) y en Inicio; temas gastos, ahorro y presupuestos (sin deudas).
+- core/insights.js (nuevo, puro): monthInsights y yearInsights devuelven datos con nivel warn/good/info.
+  views/insights.js pone el texto y el icono (aviso, bien, bombilla, llama para la racha).
+- Análisis: sección «Comentarios» tras el resumen, en mes y en año. Inicio: panel «Comentarios del mes»
+  (los 3 primeros, «Ver todos» lleva a Análisis); añadido a los paneles por defecto de instalaciones nuevas.
+- Prudencia: nada de comparar ni prever los 5 primeros días; sin alarma de ahorro en el mes en curso
+  hasta que entra un ingreso; medias solo con meses que tienen datos; sin porcentajes sobre medias < 10 €.
+- Análisis anual: la media mensual cuenta desde el primer mes con movimientos (antes, desde enero).
+
+Por qué:
+Petición de la persona propietaria.
+
+Archivos / recursos afectados:
+- app/js/core/insights.js (nuevo), catalog.js
+- app/js/views/insights.js (nuevo), stats.js, home.js
+- app/css/app.css, tests/insights.test.js (nuevo), tests/run.js
+- GUIA-DE-USO.md, DOCUMENTACION-TECNICA.md, to-do.md
+
+Verificación:
+- 85/85 tests (3 nuevos con meses de datos inventados para cada caso).
+- En el navegador (tamaño iPhone) con 6 meses de datos: comentarios coherentes en octubre (en curso),
+  septiembre (cerrado) y 2026; los colores del texto no se mezclan con la clase global «warn».
+
+---
+
 ## 2026-10-14 — Huchas (retos de ahorro por casillas) con análisis
 
 Tipo: cambio

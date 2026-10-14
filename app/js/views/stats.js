@@ -10,9 +10,11 @@ import { registerViewReset } from '../ui/session.js';
 import * as router from '../ui/router.js';
 import * as store from '../core/store.js';
 import { formatMoney, formatSigned } from '../core/money.js';
-import { currentMonthKey, isYearKey } from '../core/dates.js';
+import { currentMonthKey, isYearKey, todayISO } from '../core/dates.js';
+import { monthInsights, yearInsights } from '../core/insights.js';
 import { showMovementsFor } from './movements.js';
 import { budgetItem, categoryShare } from './shared.js';
+import { insightList } from './insights.js';
 
 let mode = 'month'; // 'month' | 'year'
 let monthKey = currentMonthKey();
@@ -99,10 +101,17 @@ const modeSwitch = () => segmented([{ value: 'month', label: 'Mes' }, { value: '
   rerender();
 }, { label: 'Periodo' });
 
+/** Comentarios automáticos sobre el periodo (si hay algo que decir). */
+function commentsSection(insights, look) {
+  const content = insightList(insights, look);
+  return content ? section({ title: 'Comentarios' }, h('div', { class: 'card' }, content)) : null;
+}
+
 function monthBody(look, derived) {
   return [
     monthNav(monthKey, (key) => { monthKey = key; rerender(); }),
     summaryCard(derived.period(monthKey)),
+    commentsSection(monthInsights(store.getState(), monthKey, todayISO()), look),
     section({ title: 'Por categoría' }, categoryCard(monthKey, look, derived)),
     section({ title: 'Presupuestos', action: { label: 'Gestionar', onClick: () => router.navigate('/mas/presupuestos') } }, budgetsCard(look, derived)),
     section({ title: 'Ingresos y gastos', caption: 'Últimos 12 meses hasta el mes elegido. Toca una columna para ver sus cifras.' },
@@ -125,7 +134,9 @@ function yearBody(look, derived) {
   };
   return [
     yearNav(year, (next) => { year = next; rerender(); }),
-    summaryCard(derived.period(year), { monthsForAverage: elapsed }),
+    // La media cuenta desde el primer mes con movimientos (si empezaste a usar la app en mayo, desde mayo).
+    summaryCard(derived.period(year), { monthsForAverage: active.length ? elapsed - months.indexOf(active[0]) : 0 }),
+    commentsSection(yearInsights(store.getState(), year, todayISO()), look),
     section({ title: 'Por categoría' }, categoryCard(year, look, derived)),
     section({ title: 'Ingresos y gastos', caption: `De enero a diciembre de ${year}. Toca una columna para ver sus cifras.` },
       h('div', { class: 'card' }, incomeExpenseChart(months))),

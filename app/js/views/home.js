@@ -19,6 +19,8 @@ import { openMovementForm } from './movement-form.js';
 import { compareNewest, movementRow, accountRow, debtRow, budgetItem, categoryShare, moveButtons } from './shared.js';
 import { showMovementsFor } from './movements.js';
 import { showStatsFor } from './stats.js';
+import { insightList } from './insights.js';
+import { monthInsights } from '../core/insights.js';
 import { piggyItem } from './piggies.js';
 
 const BACKUP_REMINDER_DAYS = 30;
@@ -96,6 +98,13 @@ const PANELS = {
         kv('Gastos', formatSigned(-month.expense)),
         month.debtNet ? kv('Deudas (pagos y cobros)', formatSigned(month.debtNet)) : null,
         kv('Resultado', formatSigned(month.result), `total ${month.result < 0 ? 'neg' : ''}`)));
+  },
+
+  insights({ state, look, monthKey, today }) {
+    const all = monthInsights(state, monthKey, today);
+    return section({ title: 'Comentarios del mes', action: all.length > 3 ? { label: 'Ver todos', onClick: () => showStatsFor(monthKey) } : null },
+      h('div', { class: 'card' }, insightList(all.slice(0, 3), look)
+        ?? h('p', { class: 'caption' }, 'Cuando tengas más movimientos te iré comentando cómo vas.')));
   },
 
   pace({ state, derived, monthKey, today }) {

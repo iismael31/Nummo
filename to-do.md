@@ -50,6 +50,9 @@
 
 ## Completados
 
+- [x] 2026-10-14 — Comentarios automáticos sobre gastos, ahorro y presupuestos en Análisis (mes y año) y panel
+      «Comentarios» en Inicio. La media anual cuenta desde el primer mes con movimientos.
+
 - [x] 2026-10-14 — Huchas (retos de ahorro por casillas) con análisis local: reparto exacto de casillas, meter dinero
       desde una cuenta o sin cuenta, tocar casillas, historial con deshacer, vaciar, panel en Inicio y patrimonio (esquema v3).
 

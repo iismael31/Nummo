@@ -10,5 +10,6 @@ import './store.test.js';
 import './backup.test.js';
 import './color.test.js';
 import './piggy.test.js';
+import './insights.test.js';
 
 run();

@@ -99,6 +99,7 @@ export const DEFAULT_AUTO_LOCK = 60;
 export const HOME_PANELS = [
   { key: 'networth', label: 'Patrimonio neto', help: 'Tu total, lo que hay en cuentas, lo que debes y lo que te deben.' },
   { key: 'month', label: 'Este mes', help: 'Ingresos, gastos y resultado del mes.' },
+  { key: 'insights', label: 'Comentarios', help: 'Cómo vas este mes con tus gastos, tu ahorro y tus presupuestos.' },
   { key: 'pace', label: 'Ritmo de gasto', help: 'Lo gastado, la media al día y la previsión para final de mes.' },
   { key: 'budgets', label: 'Presupuestos', help: 'Cómo vas con tus límites del mes.' },
   { key: 'piggies', label: 'Huchas', help: 'Lo que llevas ahorrado en cada hucha y si vas bien.' },
@@ -115,4 +116,4 @@ export const HOME_PANELS = [
 ];
 export const HOME_PANEL_KEYS = HOME_PANELS.map((p) => p.key);
 /** Lo que se ve en Inicio al empezar (el diseño de siempre). */
-export const DEFAULT_HOME_PANELS = ['networth', 'month', 'budgets', 'piggies', 'accounts', 'upcoming', 'recent'];
+export const DEFAULT_HOME_PANELS = ['networth', 'month', 'insights', 'budgets', 'piggies', 'accounts', 'upcoming', 'recent'];

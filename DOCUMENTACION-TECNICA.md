@@ -117,6 +117,7 @@ nummo/
 │       │   ├── store.js      estado en memoria + operaciones + guardado
 │       │   ├── finance.js    saldos, deudas, resúmenes, presupuestos, series
 │       │   ├── piggy.js      huchas: reparto de casillas, ingresos, estado y análisis
+│       │   ├── insights.js   comentarios automáticos de un mes o un año (gastos, ahorro, presupuestos)
 │       │   ├── recurring.js  fechas de programados
 │       │   ├── backup.js     copia cifrada y CSV
 │       │   └── color.js      contraste WCAG y tonos de acento en OKLCH
@@ -243,6 +244,10 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
   - Los movimientos de deuda **no** son gasto ni ingreso: van en «Deudas», y solo si pasaron por una cuenta.
   - Las transferencias no cuentan.
 - **Periodos.** `periodSummary` y `totalsByCategory` aceptan un mes `AAAA-MM` o un año `AAAA` (`periodBounds` en `dates.js`). Análisis tiene modo Mes y modo Año; en el año, la media mensual divide entre los meses transcurridos (12 si el año ya pasó).
+- **Comentarios (`core/insights.js`, texto en `views/insights.js`).** `monthInsights(state, mes, hoy)` y `yearInsights(state, año, hoy)` devuelven `{ kind, level: 'warn'|'good'|'info', … }`, primero los avisos.
+  - Mes: gasto frente a la media de los 3 meses anteriores con datos (en el mes en curso, «a estas alturas»: hasta el mismo día), categoría que más sube o baja (±30 % y ≥ 20 €), gastos hormiga (≥ 8 de ≤ 10 € en una categoría), gasto raro (≥ 3 veces la mediana de su categoría en 6 meses y ≥ 50 €), ahorro y tasa, racha de meses ahorrando y presupuestos (pasado, previsión del día en que se supera o todo bien).
+  - Los primeros 5 días del mes no se compara ni se prevé, y no se juzga el ahorro del mes en curso hasta que entra algún ingreso (para quien cobra a final de mes).
+  - Año: previsión de ahorro (meses cerrados + su media × meses que quedan), frente al mismo periodo del año anterior, categoría que más sube, categoría principal, mejor mes y el de más gasto, y racha.
 - **Inicio.** Cada panel es una función de `PANELS` en `views/home.js`; el catálogo (clave, nombre, ayuda) está en `HOME_PANELS` de `catalog.js` y el orden visible en `settings.homePanels`. Los avisos (versión, copia, instalación) van siempre arriba.
 - **Presupuestos.** Lo gastado es la suma de sus categorías (o de todo el gasto, en el total). Nivel `warn` al llegar al 80 % y `over` al superarse. Al borrar una categoría sale de sus presupuestos, y los que se quedan sin ninguna desaparecen.
 - **Programados.**
@@ -376,12 +381,13 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
 ## 10. Tests
 
 - **Ejecutar.** Arranca `python3 tools/serve.py` y abre http://127.0.0.1:8080/tests/. Usan una base de datos IndexedDB aparte, `nummo-test`.
-- **Qué cubren (82 tests).**
+- **Qué cubren (85 tests).**
   - Interpretación y formato de importes.
   - Fechas: bisiestos, anclaje de día y cambios de mes y año.
   - Validación del modelo en modo estricto y de reparación, integridad referencial, saneado y conversión de datos de la versión 1.
   - Cálculos: saldos, deudas, patrimonio, resúmenes de mes y de año, presupuestos y series.
   - Paneles de Inicio: solo claves conocidas, sin repetir, y los de siempre por defecto.
+  - Comentarios: mes cerrado (media, categoría que sube, gastos hormiga, gasto raro, ahorro, racha y presupuestos), mes en curso (nada los primeros días, sin alarma antes de cobrar, previsión del presupuesto) y año (previsión, categoría principal, mejor mes y racha).
   - Programados: deriva, fin, pausa y tope.
   - Huchas: reparto exacto (25 semillas), casillas grandes, sin solución, qué casillas tacha cada ingreso, análisis con los números de un reto real (1.000 € en 91 días), cuentas y patrimonio, suelto, deshacer, vaciar, borrar cuenta y hucha, datos incoherentes y conversión de datos antiguos.
   - Cifrado: ida y vuelta, AAD, manipulación y Base64.

@@ -58,7 +58,7 @@ A partir de ahora, cada vez que abras la app te pedirá el PIN.
 En **Inicio**, pulsa **Editar** (arriba a la derecha):
 
 - **Quita** un panel con la ✕ y **ordénalos** con las flechas.
-- En **Más paneles** puedes **añadir**: ritmo de gasto (media diaria y previsión del mes), deudas, gastos por categoría, gráficas de ingresos y gastos y del patrimonio, resumen del año, mayores gastos del mes y accesos rápidos para apuntar.
+- En **Más paneles** puedes **añadir**: comentarios del mes, ritmo de gasto (media diaria y previsión del mes), deudas, gastos por categoría, gráficas de ingresos y gastos y del patrimonio, resumen del año, mayores gastos del mes y accesos rápidos para apuntar.
 - **Volver a los paneles de siempre** deja Inicio como al principio.
 
 Los avisos importantes (versión nueva, copia de seguridad) siempre salen arriba. Tu Inicio se guarda en la copia de seguridad.
@@ -154,6 +154,7 @@ En **Análisis**, elige arriba **Mes** o **Año** y cambia de mes o de año con 
 En **Mes**:
 
 - **Ingresos, gastos, ahorro** y **tasa de ahorro** del mes.
+- **Comentarios**: frases automáticas sobre cómo vas, con un icono según el tipo: ⚠️ conviene mirarlo, ✅ buena noticia, 💡 dato curioso. Por ejemplo, si gastas más que tu media «a estas alturas» del mes, qué categoría se dispara, los «gastos hormiga», un gasto fuera de lo normal, tu ahorro y tu racha de meses ahorrando, o si vas a pasarte de un presupuesto y hacia qué día. Mientras no hayas cobrado ese mes, no te avisa de que gastas más de lo que ingresas.
 - **Por categoría**: en qué gastas (o de dónde ingresas), con porcentajes. Toca una categoría para ver sus movimientos.
 - **Presupuestos** del mes.
 - **Ingresos y gastos** de los últimos 12 meses: toca una columna para ver sus cifras.
@@ -161,7 +162,8 @@ En **Mes**:
 
 En **Año**:
 
-- Ingresos, gastos, ahorro y tasa de ahorro del año, con la **media al mes**.
+- Ingresos, gastos, ahorro y tasa de ahorro del año, con la **media al mes** (desde el primer mes en que apuntaste algo).
+- **Comentarios** del año: cuánto llevas ahorrado y con cuánto acabarás el año a tu ritmo, cómo vas frente al año anterior, dónde más gastas, tu mejor mes y el de más gasto.
 - **Por categoría** del año entero.
 - **Ingresos y gastos** de enero a diciembre y la lista **Mes a mes**: toca un mes para ver su análisis.
 - **Patrimonio neto** a final de cada mes del año.

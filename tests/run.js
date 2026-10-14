@@ -9,5 +9,6 @@ import './vault.test.js';
 import './store.test.js';
 import './backup.test.js';
 import './color.test.js';
+import './piggy.test.js';
 
 run();

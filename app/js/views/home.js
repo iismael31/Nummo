@@ -19,6 +19,7 @@ import { openMovementForm } from './movement-form.js';
 import { compareNewest, movementRow, accountRow, debtRow, budgetItem, categoryShare, moveButtons } from './shared.js';
 import { showMovementsFor } from './movements.js';
 import { showStatsFor } from './stats.js';
+import { piggyItem } from './piggies.js';
 
 const BACKUP_REMINDER_DAYS = 30;
 
@@ -64,15 +65,24 @@ function notices(state) {
 
 const PANELS = {
   networth({ derived }) {
-    const { totalBalance, totalOwe, totalOwed, netWorth } = derived.summary;
+    const { totalBalance, totalOwe, totalOwed, totalPiggies, netWorth } = derived.summary;
     return h('section', { class: 'card', 'aria-label': 'Patrimonio neto' },
       h('div', null,
         h('p', { class: 'hero-label' }, 'Patrimonio neto'),
         h('p', { class: ['hero-value', netWorth < 0 && 'neg'] }, formatMoney(netWorth))),
       h('div', { class: 'stats' },
         stat('En cuentas', formatMoney(totalBalance)),
+        totalPiggies ? stat('En huchas', formatMoney(totalPiggies)) : null,
         stat('Debes', formatMoney(totalOwe)),
         stat('Te deben', formatMoney(totalOwed))));
+  },
+
+  piggies({ state, derived, today }) {
+    const open = [...state.piggies].sort((a, b) => a.order - b.order).filter((p) => !derived.piggies.get(p.id).closed);
+    return section({ title: 'Huchas', action: { label: open.length ? 'Ver todas' : 'Crear', onClick: () => router.navigate('/mas/huchas') } },
+      open.length
+        ? list(open.slice(0, 3).map((p) => piggyItem(p, derived.piggies.get(p.id), today, { onClick: () => router.navigate(`/mas/huchas/${p.id}`) })))
+        : h('div', { class: 'card' }, emptyState('pig-money', 'Sin huchas', 'Ahorra para algo concreto casilla a casilla.')));
   },
 
   month({ derived, monthKey }) {

@@ -11,14 +11,17 @@ import {
 } from './catalog.js';
 
 // 2: presupuestos con varias categorías (`categoryIds`). Los datos de la versión 1 se convierten al leerlos.
-export const SCHEMA_VERSION = 2;
+// 3: huchas (`piggies` y movimientos de tipo 'piggy').
+export const SCHEMA_VERSION = 3;
 export const CORE_BUCKET = 'core';
 export const LIMITS = {
   name: 40, note: 140,
   // 100.000 movimientos ≈ 10 al día durante 27 años; la copia cabe en MAX_BACKUP_BYTES (backup.js).
   accounts: 100, categories: 300, debts: 1000, budgets: 300, recurring: 300, movements: 100_000,
+  piggies: 100, boxes: 1000,
 };
-export const MOVEMENT_TYPES = ['expense', 'income', 'transfer', 'debt'];
+export const MOVEMENT_TYPES = ['expense', 'income', 'transfer', 'debt', 'piggy'];
+export const PIGGY_FLOWS = ['in', 'out']; // meter dinero / vaciar la hucha al terminar
 export const DEBT_KINDS = ['owe', 'owed']; // debo / me deben
 export const DEBT_FLOWS = ['add', 'pay']; // la deuda crece / se paga
 export const FREQUENCIES = ['weekly', 'monthly', 'yearly'];
@@ -117,6 +120,33 @@ export function normalizeBudget(raw) {
   };
 }
 
+/**
+ * Hucha: un objetivo con fecha límite repartido en casillas de importes fijos que suman el objetivo.
+ * Lo metido, las casillas pagadas y si se vació salen de sus movimientos de tipo 'piggy'.
+ */
+export function normalizePiggy(raw) {
+  if (!isObject(raw)) fail('Hucha no válida.');
+  const name = cleanText(raw.name, LIMITS.name) || fail('La hucha necesita un nombre.');
+  const what = `Hucha «${name}»`;
+  if (!isISODate(raw.startDate) || !isISODate(raw.deadline)) fail(`${what}: fechas no válidas.`);
+  if (raw.deadline <= raw.startDate) fail(`${what}: la fecha límite debe ser posterior a hoy.`);
+  if (!Array.isArray(raw.boxes) || raw.boxes.length === 0 || raw.boxes.length > LIMITS.boxes) fail(`${what}: casillas no válidas.`);
+  const boxes = raw.boxes.map((box) => positiveCents(box, what));
+  const goal = positiveCents(raw.goal, what);
+  if (boxes.reduce((sum, box) => sum + box, 0) !== goal) fail(`${what}: las casillas no suman el objetivo.`);
+  return {
+    id: requireId(raw.id, what),
+    name,
+    icon: pick(raw.icon, PICKER_ICONS, 'pig-money'),
+    color: pick(raw.color, COLOR_KEYS, 'green'),
+    goal,
+    startDate: raw.startDate,
+    deadline: raw.deadline,
+    boxes,
+    order: orderOf(raw.order),
+  };
+}
+
 /** Campos comunes de un movimiento y de la plantilla de un movimiento programado. */
 function normalizeMovementFields(raw, what) {
   if (!isObject(raw)) fail(`${what}: formato no válido.`);
@@ -126,6 +156,16 @@ function normalizeMovementFields(raw, what) {
     out.debtId = requireId(raw.debtId, what);
     out.flow = pick(raw.flow, DEBT_FLOWS, null) ?? fail(`${what}: operación de deuda no válida.`);
     out.accountId = raw.accountId == null ? null : requireId(raw.accountId, what);
+  } else if (type === 'piggy') {
+    out.piggyId = requireId(raw.piggyId, what);
+    out.flow = pick(raw.flow, PIGGY_FLOWS, null) ?? fail(`${what}: operación de hucha no válida.`);
+    out.accountId = raw.accountId == null ? null : requireId(raw.accountId, what);
+    const boxes = raw.boxes ?? [];
+    if (!Array.isArray(boxes) || boxes.length > LIMITS.boxes || !boxes.every((i) => Number.isSafeInteger(i) && i >= 0 && i < LIMITS.boxes)) {
+      fail(`${what}: casillas no válidas.`);
+    }
+    if (new Set(boxes).size !== boxes.length || (out.flow === 'out' && boxes.length)) fail(`${what}: casillas no válidas.`);
+    out.boxes = [...boxes];
   } else {
     out.accountId = requireId(raw.accountId, what);
     if (type === 'transfer') {
@@ -161,7 +201,7 @@ export function normalizeRecurring(raw) {
   if (raw.endDate != null && (!isISODate(raw.endDate) || raw.endDate < raw.startDate)) fail(`${what}: fecha de fin no válida.`);
   const index = raw.index ?? 0;
   if (!Number.isSafeInteger(index) || index < 0 || index > MAX_RECURRING_INDEX) fail(`${what}: estado no válido.`);
-  return {
+  const recurring = {
     id: requireId(raw.id, what),
     active: raw.active !== false,
     frequency: pick(raw.frequency, FREQUENCIES, null) ?? fail(`${what}: frecuencia no válida.`),
@@ -172,6 +212,8 @@ export function normalizeRecurring(raw) {
     anchorDay: Number.isInteger(raw.anchorDay) && raw.anchorDay >= 29 && raw.anchorDay <= 31 ? raw.anchorDay : null,
     template: normalizeMovementFields(raw.template, what),
   };
+  if (recurring.template.type === 'piggy') fail(`${what}: no se pueden programar movimientos de huchas.`);
+  return recurring;
 }
 
 export function normalizeSettings(raw) {
@@ -241,6 +283,8 @@ export function normalizeData(raw, { strict = true } = {}) {
   const accountIds = new Set(accounts.map((a) => a.id));
   const categoryKind = new Map(categories.map((c) => [c.id, c.kind]));
   const debtIds = new Set(debts.map((d) => d.id));
+  const piggies = collect(raw.piggies, LIMITS.piggies, 'Huchas', normalizePiggy);
+  const piggyById = new Map(piggies.map((p) => [p.id, p]));
 
   const checkRefs = (m, what) => {
     if (m.accountId !== null && !accountIds.has(m.accountId)) fail(`${what}: la cuenta no existe.`);
@@ -249,6 +293,7 @@ export function normalizeData(raw, { strict = true } = {}) {
       fail(`${what}: la categoría no existe o no corresponde al tipo.`);
     }
     if (m.type === 'debt' && !debtIds.has(m.debtId)) fail(`${what}: la deuda no existe.`);
+    if (m.type === 'piggy' && !piggyById.has(m.piggyId)) fail(`${what}: la hucha no existe.`);
     return m;
   };
 
@@ -259,11 +304,42 @@ export function normalizeData(raw, { strict = true } = {}) {
   });
   const recurringIds = new Set(recurring.map((r) => r.id));
 
-  const movements = collect(raw.movements, LIMITS.movements, 'Movimientos', (item) => {
+  let movements = collect(raw.movements, LIMITS.movements, 'Movimientos', (item) => {
     const m = checkRefs(normalizeMovement(item), 'Movimiento');
     if (m.recurringId && !recurringIds.has(m.recurringId)) delete m.recurringId;
     return m;
   });
+
+  // Huchas, en orden de creación: cada casilla se paga una sola vez, nunca se tacha más de lo metido
+  // y vaciarla (una única vez, todo lo metido) la cierra.
+  const tracks = new Map(piggies.map((p) => [p.id, { paid: new Set(), deposited: 0, paidAmount: 0, closed: false }]));
+  const rejected = new Set();
+  const piggyMoves = movements.filter((m) => m.type === 'piggy').sort((a, b) => a.ts - b.ts || (a.date < b.date ? -1 : 1));
+  for (const m of piggyMoves) {
+    const ok = attempt(() => {
+      const piggy = piggyById.get(m.piggyId);
+      const t = tracks.get(m.piggyId);
+      const what = `Hucha «${piggy.name}»`;
+      if (t.closed) fail(`${what}: tiene movimientos después de vaciarla.`);
+      if (m.flow === 'out') {
+        if (m.amount !== t.deposited) fail(`${what}: al vaciarla hay que sacar todo lo metido.`);
+        t.closed = true;
+        return true;
+      }
+      let sum = 0;
+      for (const i of m.boxes) {
+        if (i >= piggy.boxes.length || t.paid.has(i)) fail(`${what}: casilla no válida o ya pagada.`);
+        sum += piggy.boxes[i];
+      }
+      if (t.paidAmount + sum > t.deposited + m.amount) fail(`${what}: hay casillas tachadas sin dinero suficiente.`);
+      for (const i of m.boxes) t.paid.add(i);
+      t.paidAmount += sum;
+      t.deposited += m.amount;
+      return true;
+    });
+    if (!ok) rejected.add(m);
+  }
+  if (rejected.size) movements = movements.filter((m) => !rejected.has(m));
 
   // Una categoría puede estar en varios presupuestos; el total del mes solo puede haber uno.
   let hasTotal = false;
@@ -279,14 +355,20 @@ export function normalizeData(raw, { strict = true } = {}) {
   });
 
   const settings = normalizeSettings(raw.settings);
+  // Datos anteriores a las huchas: su panel aparece en Inicio (después de los presupuestos).
+  if (raw.version < 3 && !settings.homePanels.includes('piggies')) {
+    const at = settings.homePanels.indexOf('budgets');
+    settings.homePanels.splice(at < 0 ? settings.homePanels.length : at + 1, 0, 'piggies');
+  }
   if (settings.lastAccountId && !accountIds.has(settings.lastAccountId)) settings.lastAccountId = null;
 
   const byOrder = (a, b) => a.order - b.order;
   accounts.sort(byOrder).forEach((a, i) => { a.order = i; });
   categories.sort(byOrder).forEach((c, i) => { c.order = i; });
+  piggies.sort(byOrder).forEach((p, i) => { p.order = i; });
 
   return {
-    data: { version: SCHEMA_VERSION, settings, accounts, categories, debts, budgets, recurring, movements },
+    data: { version: SCHEMA_VERSION, settings, accounts, categories, debts, budgets, piggies, recurring, movements },
     dropped,
   };
 }
@@ -302,6 +384,7 @@ export function createInitialState() {
     categories: DEFAULT_CATEGORIES.map((c, i) => ({ id: newId(), archived: false, order: i, ...c })),
     debts: [],
     budgets: [],
+    piggies: [],
     recurring: [],
     movements: [],
   };

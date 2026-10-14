@@ -119,6 +119,25 @@ Dentro de cada deuda verás cuánto **te queda**, una barra de progreso y el his
 
 La barra se pone **ámbar** al llegar al 80 % y **roja** si te pasas. Los presupuestos en riesgo aparecen también en **Inicio**, y cada mes empiezan de cero.
 
+### Huchas: ahorra casilla a casilla
+
+Para ahorrar para algo concreto (unas vacaciones, una consola…): **Más → Huchas → Nueva hucha**.
+
+1. Escribe el **nombre**, el **objetivo** y la **fecha límite**.
+2. Elige cuántas **casillas** quieres (atajos: 52 = una por semana, 365 = una al día) y de qué **importes** (de 1 € a 1.000 €). Si quieres, di cuántas casillas del importe más alto; si lo dejas vacío, la app lo calcula.
+3. La app reparte las casillas para que sumen justo el objetivo. ¿No te gusta el reparto? Pulsa **Otra distribución**.
+4. Pulsa **Guardar**.
+
+Para ahorrar:
+
+- **Meter dinero**: escribe cuánto has metido (o usa +2 €, +5 €…). La app te dice qué casillas va a tachar, empezando por las más grandes que caben. Lo que no completa una casilla se queda «suelto» y se usa en el siguiente ingreso.
+- **Tocar una casilla**: metes justo ese importe y se tacha esa casilla.
+- **De dónde sale el dinero**: si eliges una cuenta, su saldo baja (el dinero pasa a la hucha y tu patrimonio no cambia). Deja «Ninguna» si es una hucha física.
+- **Historial**: cada ingreso con sus casillas. Puedes **deshacer** el último.
+- **Vaciar la hucha**: cuando la consigas (o si la rompes antes), sacas todo a una cuenta o sin cuenta y la hucha queda terminada.
+
+El **análisis** de cada hucha te dice si vas bien según el plan, cuánto te toca por semana y al día, cuándo acabarás a tu ritmo y tu racha de semanas ahorrando. También te da consejos con tus propios datos: lo que sueles ahorrar al mes, lo que llevas este mes y tu mayor gasto. Todo se calcula en el móvil: no se envía nada a ningún sitio. Tus huchas aparecen también en **Inicio** y lo que hay en ellas cuenta en tu **patrimonio**.
+
 ### Movimientos programados
 
 **Más → Programados → Nuevo programado** (o la opción «Repetir» al apuntar un movimiento).
@@ -138,7 +157,7 @@ En **Mes**:
 - **Por categoría**: en qué gastas (o de dónde ingresas), con porcentajes. Toca una categoría para ver sus movimientos.
 - **Presupuestos** del mes.
 - **Ingresos y gastos** de los últimos 12 meses: toca una columna para ver sus cifras.
-- **Patrimonio neto**: cómo evoluciona lo que tienes. Se calcula así: saldo de tus cuentas − lo que debes + lo que te deben.
+- **Patrimonio neto**: cómo evoluciona lo que tienes. Se calcula así: saldo de tus cuentas + lo que hay en tus huchas − lo que debes + lo que te deben.
 
 En **Año**:
 

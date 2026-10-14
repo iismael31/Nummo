@@ -8,8 +8,9 @@ import { todayISO } from './dates.js';
 import {
   CORE_BUCKET, LIMITS, ValidationError, allBucketKeys, buildBucket, mergeBuckets, movementBucket, isBucketKey,
   normalizeAccount, normalizeBudget, normalizeCategory, normalizeData, normalizeDebt,
-  normalizeMovement, normalizeRecurring, normalizeSettings,
+  normalizeMovement, normalizePiggy, normalizeRecurring, normalizeSettings,
 } from './model.js';
+import { chooseBoxes, piggyStatus } from './piggy.js';
 import { computeBalances, createDerived } from './finance.js';
 import { dueOccurrences, planRecurringUpdate } from './recurring.js';
 
@@ -153,6 +154,7 @@ function checkRefs(m) {
     if (!category || category.kind !== m.type) throw new ValidationError('Elige una categoría.');
   }
   if (m.type === 'debt' && !byId(s.debts, m.debtId)) throw new ValidationError('La deuda no existe.');
+  if (m.type === 'piggy' && !byId(s.piggies, m.piggyId)) throw new ValidationError('La hucha no existe.');
   return m;
 }
 
@@ -219,10 +221,12 @@ export function reorderAccounts(ids) {
 export function accountUsage(id) {
   const s = requireState();
   const uses = (m) => m.accountId === id || m.toAccountId === id;
+  const kept = (m) => m.type === 'debt' || m.type === 'piggy'; // se conservan sin cuenta
   return {
-    movements: s.movements.filter((m) => m.type !== 'debt' && uses(m)).length, // se borran
+    movements: s.movements.filter((m) => !kept(m) && uses(m)).length, // se borran
     transfers: s.movements.filter((m) => m.type === 'transfer' && uses(m)).length,
-    debtMovements: s.movements.filter((m) => m.type === 'debt' && m.accountId === id).length, // se conservan sin cuenta
+    debtMovements: s.movements.filter((m) => m.type === 'debt' && m.accountId === id).length,
+    piggyMovements: s.movements.filter((m) => m.type === 'piggy' && m.accountId === id).length,
     recurring: s.recurring.filter((r) => r.template.type !== 'debt' && uses(r.template)).length,
   };
 }
@@ -250,7 +254,8 @@ export function deleteAccount(id) {
   const keys = new Set([CORE_BUCKET]);
   for (const account of adjusted) s.accounts[s.accounts.findIndex((a) => a.id === account.id)] = account;
   s.movements = s.movements.filter((m) => {
-    if (m.type === 'debt') {
+    // Pagos de deudas y dinero de huchas: se quedan sin cuenta (lo pendiente y lo ahorrado no cambian).
+    if (m.type === 'debt' || m.type === 'piggy') {
       if (m.accountId === id) {
         m.accountId = null;
         keys.add(movementBucket(m.date));
@@ -356,7 +361,7 @@ export function addMovement(input) {
   const s = requireState();
   const movement = insertMovement(input);
   const keys = [movementBucket(movement.date)];
-  if (movement.type !== 'debt' && s.settings.lastAccountId !== movement.accountId) {
+  if (movement.type !== 'debt' && movement.type !== 'piggy' && s.settings.lastAccountId !== movement.accountId) {
     s.settings.lastAccountId = movement.accountId;
     keys.push(CORE_BUCKET);
   }
@@ -386,6 +391,10 @@ export function deleteMovement(id) {
 export function restoreMovement(movement) {
   const s = requireState();
   if (byId(s.movements, movement.id)) return;
+  // En una hucha solo se puede recuperar si sigue siendo lo último (lo posterior podría depender de él).
+  if (movement.type === 'piggy' && piggyMovements(s, movement.piggyId).some((m) => m.ts > movement.ts)) {
+    throw new ValidationError('Ya no se puede deshacer: la hucha ha cambiado después.');
+  }
   ensureRoom(s.movements, LIMITS.movements, 'Has alcanzado el máximo de movimientos.');
   s.movements.push(checkRefs(normalizeMovement(movement)));
   commit(movementBucket(movement.date));
@@ -438,6 +447,95 @@ export function deleteDebt(id) {
   s.recurring = s.recurring.filter((r) => r.template.debtId !== id);
   s.debts = s.debts.filter((d) => d.id !== id);
   commit(...keys);
+}
+
+// --- Huchas ----------------------------------------------------------------------------------
+
+const piggyMovements = (s, id) => s.movements.filter((m) => m.type === 'piggy' && m.piggyId === id);
+
+/** Estado de una hucha (casillas pagadas, lo metido, lo suelto, si se vació…). */
+export function piggyInfo(id) {
+  const s = requireState();
+  return piggyStatus(mustFind(s.piggies, id, 'La hucha'), piggyMovements(s, id));
+}
+
+/** Crea una hucha: { name, icon, color, goal, deadline, boxes } (las casillas, de core/piggy.planBoxes). */
+export function addPiggy(input, today = todayISO()) {
+  const s = requireState();
+  ensureRoom(s.piggies, LIMITS.piggies, `Puedes tener como máximo ${LIMITS.piggies} huchas.`);
+  const piggy = normalizePiggy({ ...input, id: newId(), startDate: today, order: s.piggies.length });
+  s.piggies.push(piggy);
+  commit(CORE_BUCKET);
+  return piggy;
+}
+
+/** Cambia nombre, símbolo, color o fecha límite. El objetivo y las casillas solo si aún está vacía. */
+export function updatePiggy(id, input) {
+  const s = requireState();
+  const current = mustFind(s.piggies, id, 'La hucha');
+  const fixed = piggyMovements(s, id).length ? { goal: current.goal, boxes: current.boxes } : {};
+  const next = normalizePiggy({ ...current, ...input, ...fixed, id, startDate: current.startDate, order: current.order });
+  s.piggies[s.piggies.indexOf(current)] = next;
+  commit(CORE_BUCKET);
+  return next;
+}
+
+/** Borra una hucha con su historial (el dinero que salió de cuentas vuelve a ellas). */
+export function deletePiggy(id) {
+  const s = requireState();
+  mustFind(s.piggies, id, 'La hucha');
+  const keys = new Set([CORE_BUCKET]);
+  s.movements = s.movements.filter((m) => {
+    const remove = m.type === 'piggy' && m.piggyId === id;
+    if (remove) keys.add(movementBucket(m.date));
+    return !remove;
+  });
+  s.piggies = s.piggies.filter((p) => p.id !== id);
+  reindex(s.piggies);
+  commit(...keys);
+}
+
+/**
+ * Mete dinero en una hucha. Sin `boxes`, tacha las casillas más grandes que quepan en lo que se
+ * mete más lo suelto; con `boxes` (tocar una casilla), exactamente esas. accountId: de dónde sale.
+ */
+export function depositToPiggy(id, { amount, accountId = null, boxes = null, date = todayISO() }) {
+  const s = requireState();
+  const piggy = mustFind(s.piggies, id, 'La hucha');
+  const status = piggyStatus(piggy, piggyMovements(s, id));
+  if (status.closed) throw new ValidationError('Esta hucha ya está vaciada.');
+  let indexes;
+  if (boxes) {
+    const sum = boxes.reduce((total, i) => total + (piggy.boxes[i] ?? 0), 0);
+    if (boxes.some((i) => !(i in piggy.boxes) || status.paid.has(i)) || sum > amount + status.loose) {
+      throw new ValidationError('Esa casilla ya está pagada.');
+    }
+    indexes = boxes;
+  } else {
+    indexes = chooseBoxes(piggy.boxes, status.paid, amount + status.loose).indexes;
+  }
+  const movement = insertMovement({ type: 'piggy', piggyId: id, flow: 'in', amount, accountId, boxes: indexes, date, note: '' });
+  commit(movementBucket(movement.date));
+  return movement;
+}
+
+/** Vacía la hucha (todo lo metido) en una cuenta o sin cuenta, y la da por terminada. */
+export function emptyPiggy(id, { accountId = null, date = todayISO() } = {}) {
+  const s = requireState();
+  const piggy = mustFind(s.piggies, id, 'La hucha');
+  const status = piggyStatus(piggy, piggyMovements(s, id));
+  if (status.closed) throw new ValidationError('Esta hucha ya está vaciada.');
+  if (status.deposited <= 0) throw new ValidationError('La hucha está vacía.');
+  const movement = insertMovement({ type: 'piggy', piggyId: id, flow: 'out', amount: status.deposited, accountId, date, note: '' });
+  commit(movementBucket(movement.date));
+  return movement;
+}
+
+/** Deshace el último movimiento de la hucha (solo el último: los anteriores pueden depender de él). */
+export function undoLastPiggyMovement(id) {
+  const s = requireState();
+  const last = piggyStatus(mustFind(s.piggies, id, 'La hucha'), piggyMovements(s, id)).history.at(-1);
+  return last ? deleteMovement(last.id) : null;
 }
 
 // --- Presupuestos -----------------------------------------------------------------------------

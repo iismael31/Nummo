@@ -7,6 +7,7 @@ export const MAX_CENTS = 99_999_999_999; // 999.999.999,99 €
 const fmtCurrency = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', useGrouping: 'always' });
 const fmtSigned = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', signDisplay: 'exceptZero', useGrouping: 'always' });
 const fmtCompact = new Intl.NumberFormat('es-ES', { notation: 'compact', maximumFractionDigits: 1 });
+const fmtWhole = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: 'always' });
 
 export function isCents(value, { min = -MAX_CENTS, max = MAX_CENTS } = {}) {
   return Number.isSafeInteger(value) && value >= min && value <= max;
@@ -74,6 +75,11 @@ export function formatMoney(cents) {
 /** "+1.234,56 €" / "-12,00 €" / "0,00 €" */
 export function formatSigned(cents) {
   return fmtSigned.format(cents / 100);
+}
+
+/** Sin decimales si el importe es exacto en euros: "20 €", "1.000 €", "8,23 €". */
+export function formatEuros(cents) {
+  return cents % 100 === 0 ? fmtWhole.format(cents / 100) : fmtCurrency.format(cents / 100);
 }
 
 /** "1,2 mil" (ejes de gráficas) */

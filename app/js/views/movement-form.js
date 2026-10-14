@@ -42,6 +42,10 @@ export function openMovementForm({ movement = null, preset = {} } = {}) {
     if (debt) openDebtMovementForm({ debt, movement });
     return;
   }
+  if (movement?.type === 'piggy') { // se gestionan desde su hucha (casillas e historial)
+    router.navigate(`/mas/huchas/${movement.piggyId}`);
+    return;
+  }
   const state = store.getState();
   const editing = movement !== null;
   const accounts = selectableAccounts(state, movement?.accountId, movement?.toAccountId);

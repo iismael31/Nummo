@@ -75,7 +75,7 @@ test('store: ajustar el saldo actual de una cuenta', async () => {
 
 test('store: borrar una cuenta conserva los pagos de deudas sin cuenta', async () => {
   await setup();
-  assert.deepEqual(store.accountUsage('accountAAA'), { movements: 3, transfers: 1, debtMovements: 2, recurring: 0 });
+  assert.deepEqual(store.accountUsage('accountAAA'), { movements: 3, transfers: 1, debtMovements: 2, piggyMovements: 0, recurring: 0 });
   const efectivoAntes = computeBalances(store.getState()).get('accountBBB');
   store.deleteAccount('accountAAA');
   assert.equal(computeBalances(store.getState()).get('accountBBB'), efectivoAntes, 'la otra cuenta de la transferencia conserva su saldo');

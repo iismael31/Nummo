@@ -2,6 +2,7 @@
 // Funciones puras: leen el estado y nunca lo modifican. Todas son de una sola pasada, O(n).
 
 import { addMonthKey, monthBounds, monthKey, periodBounds } from './dates.js';
+import { piggyStatuses } from './piggy.js';
 
 /**
  * Signo del efecto de un movimiento de deuda sobre la cuenta vinculada:
@@ -22,6 +23,9 @@ export function accountEffects(m, debtKindById) {
     case 'transfer': return [[m.accountId, -m.amount], [m.toAccountId, m.amount]];
     case 'debt':
       return m.accountId ? [[m.accountId, debtAccountSign(debtKindById.get(m.debtId), m.flow) * m.amount]] : [];
+    // Meter dinero en una hucha desde una cuenta lo saca de ella; vaciarla en una cuenta lo devuelve.
+    case 'piggy':
+      return m.accountId ? [[m.accountId, m.flow === 'in' ? -m.amount : m.amount]] : [];
     default: return [];
   }
 }
@@ -52,10 +56,15 @@ export function computeDebtTotals(state) {
   return totals;
 }
 
-/** Totales generales. Patrimonio neto = cuentas incluidas en el total − lo que debo + lo que me deben. */
-export function summarize(state) {
+/**
+ * Totales generales. Patrimonio neto = cuentas incluidas en el total − lo que debo + lo que me deben
+ * + lo que hay en las huchas (meter dinero desde una cuenta no lo cambia: solo lo mueve).
+ */
+export function summarize(state, piggies = piggyStatuses(state)) {
   const balances = computeBalances(state);
   const debtTotals = computeDebtTotals(state);
+  let totalPiggies = 0;
+  for (const status of piggies.values()) totalPiggies += status.saved;
   let totalBalance = 0;
   for (const a of state.accounts) if (a.includeInTotal) totalBalance += balances.get(a.id) ?? 0;
   let owe = 0; // con signo: una deuda pagada de más resta de lo que debes (patrimonio exacto)
@@ -72,7 +81,7 @@ export function summarize(state) {
       totalOwed += Math.max(pending, 0);
     }
   }
-  return { balances, debtTotals, totalBalance, totalOwe, totalOwed, netWorth: totalBalance - owe + owed };
+  return { balances, debtTotals, totalBalance, totalOwe, totalOwed, totalPiggies, netWorth: totalBalance - owe + owed + totalPiggies };
 }
 
 /**
@@ -156,6 +165,7 @@ export function netWorthSeries(state, endKey, count) {
       const pendingDelta = m.flow === 'add' ? m.amount : -m.amount;
       delta += kinds.get(m.debtId) === 'owe' ? -pendingDelta : pendingDelta;
     }
+    if (m.type === 'piggy') delta += m.flow === 'in' ? m.amount : -m.amount;
     if (delta !== 0) deltas.push([m.date, delta]);
   }
   deltas.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
@@ -172,14 +182,19 @@ export function netWorthSeries(state, endKey, count) {
 /** Cálculos perezosos y cacheados para una versión concreta del estado. */
 export function createDerived(state) {
   let summary = null;
+  let piggies = null;
   const months = new Map();
   const cached = (key, fn) => {
     if (!months.has(key)) months.set(key, fn());
     return months.get(key);
   };
   return {
+    get piggies() {
+      piggies ??= piggyStatuses(state);
+      return piggies;
+    },
     get summary() {
-      summary ??= summarize(state);
+      summary ??= summarize(state, this.piggies);
       return summary;
     },
     period: (key) => cached(`p:${key}`, () => periodSummary(state, key)),

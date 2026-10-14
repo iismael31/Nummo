@@ -116,6 +116,7 @@ nummo/
 │       │   ├── vault.js      caja fuerte cifrada (PIN, intentos, cambio de PIN)
 │       │   ├── store.js      estado en memoria + operaciones + guardado
 │       │   ├── finance.js    saldos, deudas, resúmenes, presupuestos, series
+│       │   ├── piggy.js      huchas: reparto de casillas, ingresos, estado y análisis
 │       │   ├── recurring.js  fechas de programados
 │       │   ├── backup.js     copia cifrada y CSV
 │       │   └── color.js      contraste WCAG y tonos de acento en OKLCH
@@ -199,7 +200,7 @@ Después, cada `git push` a `main` vuelve a publicar automáticamente.
 
 ## 7. Modelo de datos
 
-Versión del esquema: **2** (`SCHEMA_VERSION`). Los datos y copias de la versión 1, con `categoryId` en los presupuestos, se convierten al leerlos; una versión más nueva se rechaza con un aviso para actualizar la app.
+Versión del esquema: **3** (`SCHEMA_VERSION`). La 2 trajo los presupuestos de varias categorías y la 3, las huchas. Los datos y copias anteriores se convierten al leerlos: los presupuestos de la versión 1 (`categoryId`) pasan a `categoryIds` y, si los datos son anteriores a la 3, el panel «Huchas» se añade a Inicio. Una versión más nueva se rechaza con un aviso para actualizar la app.
 
 Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las fechas son texto `AAAA-MM-DD` en hora local y los identificadores tienen 12 caracteres alfanuméricos.
 
@@ -210,7 +211,8 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 | **Debt** | `id, kind (owe\|owed), name, note (≤140), dueDate \| null` |
 | **Budget** | `id, name (≤40, opcional), categoryIds \| null (null = total del mes), amount` (mensual). Una categoría puede estar en varios presupuestos; solo hay un total |
 | **Recurring** | `id, active, frequency (weekly\|monthly\|yearly), interval (1–12), startDate, index, endDate \| null, template` |
-| **Movement** | `id, date, type (expense\|income\|transfer\|debt), amount (>0), accountId, toAccountId (transfer), categoryId (expense/income), debtId + flow (add\|pay) (debt), note, recurringId?, ts` |
+| **Piggy** (hucha) | `id, name (≤40), icon, color, goal, startDate, deadline (> startDate), boxes [céntimos…] (1–1.000, suman `goal`), order` |
+| **Movement** | `id, date, type (expense\|income\|transfer\|debt\|piggy), amount (>0), accountId, toAccountId (transfer), categoryId (expense/income), debtId + flow (add\|pay) (debt), piggyId + flow (in\|out) + boxes [índices] (piggy), note, recurringId?, ts` |
 | **Settings** | `autoLockSec (0\|60\|300\|900), lastBackupAt, lastAccountId, installHintDismissed, homePanels` (claves de `HOME_PANELS` en orden; las que no están se ocultan) |
 
 `icon`, `color` y `type` son claves de listas blancas definidas en `catalog.js`, así que nunca se guardan colores ni SVG libres.
@@ -224,7 +226,19 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
   - movimiento de deuda con cuenta: signo = `(kind==='owe') === (flow==='add') ? + : −`.
 - **Pendiente de una deuda.** Es Σ`add` − Σ`pay`.
 - **Tipo de deuda.** Se puede cambiar al editarla, para corregir una deuda apuntada al revés. Como el signo depende de `kind`, el cambio invierte el efecto de todos sus movimientos en las cuentas.
-- **Patrimonio neto.** Saldo de las cuentas con `includeInTotal` − lo que debes + lo que te deben.
+- **Patrimonio neto.** Saldo de las cuentas con `includeInTotal` − lo que debes + lo que te deben + lo que hay en las huchas.
+- **Huchas (`core/piggy.js`).**
+  - Lo metido, las casillas pagadas, lo «suelto» y si está vaciada salen de sus movimientos `piggy`; la hucha solo guarda el objetivo, las fechas y las casillas.
+  - **Reparto (`planBoxes`).** Parte de todas las casillas en el importe menor y las va subiendo: primero al azar, para que haya de todo, y luego ajustando hasta sumar exactamente el objetivo. Las casillas grandes son, por defecto, ≈ 12 % del objetivo (`autoBigCount`). Si no hay suma exacta (por ejemplo, 1.001 € solo con casillas de 10 y 20 €), lo dice.
+  - **Ingresos (`chooseBoxes`).** Tacha las casillas más grandes que caben en lo metido más lo suelto; lo que sobra queda suelto. Tocar una casilla mete justo su importe.
+  - **Integridad (en `normalizeData`, por orden de creación):** cada casilla se paga una vez, nunca se tacha más de lo metido, vaciarla (`out`) saca todo lo metido una sola vez y después no hay más movimientos. Solo se puede deshacer el último movimiento, porque los anteriores pueden sostener lo suelto de los siguientes. No se pueden programar.
+  - **Cuentas.** `in` con cuenta resta de ella y `out` con cuenta suma. El patrimonio no cambia al meter dinero desde una cuenta: solo se mueve. Al borrar una cuenta, sus movimientos de huchas se quedan sin cuenta. Al borrar una hucha se borra su historial y el dinero vuelve a las cuentas.
+  - **Análisis (`analyzePiggy`).**
+    - El plan reparte el objetivo por igual entre la creación y la fecha límite.
+    - Calcula lo que tocaba llevar hoy, la diferencia, lo necesario por semana y por día (los días que quedan cuentan hoy) y el nivel (`start`, `ok`, `warn` = menos de una semana de retraso, `behind`, `late`, `done`, `closed`).
+    - También calcula la proyección a tu ritmo y la racha de semanas con ingresos.
+    - Con el contexto de tus cuentas añade consejos: media de ingresos − gastos de los 3 meses anteriores, lo que llevas este mes y tu mayor categoría de gasto.
+    - Todo es local: no se usa ningún servicio de IA ni sale nada del dispositivo.
 - **Resumen del mes.**
   - Los movimientos de deuda **no** son gasto ni ingreso: van en «Deudas», y solo si pasaron por una cuenta.
   - Las transferencias no cuentan.
@@ -236,7 +250,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
   - Se generan como mucho 500 por ejecución.
   - Al reanudar no se recuperan las fechas de la pausa.
 - **Borrados en cascada.**
-  - **Cuenta:** se borran sus gastos, ingresos, transferencias y programados.
+  - **Cuenta:** se borran sus gastos, ingresos, transferencias y programados (el dinero de huchas que salió de ella se conserva sin cuenta).
     - Por cada transferencia borrada, la otra cuenta recibe la diferencia en su saldo inicial, así que su saldo no cambia.
     - Los pagos de deudas (y sus programados) se conservan sin cuenta, para no alterar lo pendiente.
   - **Categoría:** sus movimientos pasan a la categoría que elija la persona.
@@ -250,7 +264,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 | `meta` | `lockout` | `{ failures, until }` (sin cifrar; no es un secreto). Se actualiza en una sola transacción: varios intentos simultáneos cuentan todos |
 | `meta` | `biometric` | Solo si Face ID o la huella están activados: `{ v, credentialId, salt, dek: { iv, ct }, pinAt }`. La DEK cifrada con la clave que sale del secreto PRF de la llave de acceso |
 | `meta` | `revision` | Marca aleatoria de la última escritura. Cada guardado comprueba que sigue siendo la que esta ventana cargó; si otra ventana o pestaña escribió después, se rechaza (`ConflictError`) y la app se bloquea para recargar los datos |
-| `vault` | `core` | `{ iv, ct }`: cifrado de `{ version, settings, accounts, categories, debts, budgets, recurring }` |
+| `vault` | `core` | `{ iv, ct }`: cifrado de `{ version, settings, accounts, categories, debts, budgets, piggies, recurring }` |
 | `vault` | `mov-AAAA` | `{ iv, ct }`: cifrado de `{ movements }` de ese año |
 
 AAD de cada bloque: `nummo:bucket:v1:<clave>` (y `nummo:dek:v1` para la DEK). Impide intercambiar bloques cifrados entre sí.
@@ -362,13 +376,14 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
 ## 10. Tests
 
 - **Ejecutar.** Arranca `python3 tools/serve.py` y abre http://127.0.0.1:8080/tests/. Usan una base de datos IndexedDB aparte, `nummo-test`.
-- **Qué cubren (77 tests).**
+- **Qué cubren (82 tests).**
   - Interpretación y formato de importes.
   - Fechas: bisiestos, anclaje de día y cambios de mes y año.
   - Validación del modelo en modo estricto y de reparación, integridad referencial, saneado y conversión de datos de la versión 1.
   - Cálculos: saldos, deudas, patrimonio, resúmenes de mes y de año, presupuestos y series.
   - Paneles de Inicio: solo claves conocidas, sin repetir, y los de siempre por defecto.
   - Programados: deriva, fin, pausa y tope.
+  - Huchas: reparto exacto (25 semillas), casillas grandes, sin solución, qué casillas tacha cada ingreso, análisis con los números de un reto real (1.000 € en 91 días), cuentas y patrimonio, suelto, deshacer, vaciar, borrar cuenta y hucha, datos incoherentes y conversión de datos antiguos.
   - Cifrado: ida y vuelta, AAD, manipulación y Base64.
   - Caja fuerte: crear y desbloquear, nada legible en disco, límite de intentos, cambio de PIN y desbloqueo biométrico (secreto incorrecto, PIN cada 7 días, la hora que retrocede, cambio de PIN y desactivación).
   - Almacén: persistencia, cascadas, deshacer, programados y restauración.

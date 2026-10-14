@@ -18,7 +18,7 @@ import { compareNewest, movementRow } from './shared.js';
 const MAX_SEARCH_RESULTS = 300;
 const SEARCH_DELAY_MS = 150;
 const NO_FILTERS = { type: null, accountId: null, categoryId: null };
-const TYPE_LABELS = { expense: 'Gastos', income: 'Ingresos', transfer: 'Transferencias', debt: 'Deudas' };
+const TYPE_LABELS = { expense: 'Gastos', income: 'Ingresos', transfer: 'Transferencias', debt: 'Deudas', piggy: 'Huchas' };
 
 let monthKey = currentMonthKey();
 let filters = { ...NO_FILTERS };
@@ -42,13 +42,13 @@ const activeFilterCount = () => Object.values(filters).filter(Boolean).length;
 /** Nombres ya normalizados (sin tildes ni mayúsculas), una vez por búsqueda y no por movimiento. */
 function foldedNames(look) {
   const fold = (map) => new Map([...map].map(([id, item]) => [id, foldText(item.name)]));
-  return { accounts: fold(look.accounts), categories: fold(look.categories), debts: fold(look.debts) };
+  return { accounts: fold(look.accounts), categories: fold(look.categories), debts: fold(look.debts), piggies: fold(look.piggies) };
 }
 
 function matches(m, q, names) {
   const fields = [
     names.categories.get(m.categoryId), names.accounts.get(m.accountId), names.accounts.get(m.toAccountId),
-    names.debts.get(m.debtId), centsToInput(m.amount),
+    names.debts.get(m.debtId), names.piggies.get(m.piggyId), centsToInput(m.amount),
   ];
   return fields.some((f) => f?.includes(q)) || (m.note !== '' && foldText(m.note).includes(q));
 }

@@ -135,6 +135,7 @@ export function openAccountForm({ account = null } = {}) {
       usage.movements ? `Se ${usage.movements === 1 ? 'borrará su único movimiento' : `borrarán sus ${usage.movements} movimientos`} (gastos, ingresos y transferencias).` : 'No tiene gastos, ingresos ni transferencias.',
       usage.transfers ? 'Las cuentas con las que hizo transferencias conservarán su saldo actual.' : '',
       usage.debtMovements ? `${usage.debtMovements === 1 ? 'Su pago o cobro de deuda se conservará' : `Sus ${usage.debtMovements} pagos o cobros de deudas se conservarán`} sin cuenta.` : '',
+      usage.piggyMovements ? 'Lo que metiste desde ella en tus huchas se conserva, sin cuenta.' : '',
       usage.recurring ? `También se ${usage.recurring === 1 ? 'borrará 1 programado' : `borrarán ${usage.recurring} programados`}.` : '',
       'Si solo quieres ocultarla, archívala.',
     ].filter(Boolean).join(' ');

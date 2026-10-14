@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-10-14 — Huchas (retos de ahorro por casillas) con análisis
+
+Tipo: cambio
+
+Qué se hizo:
+- core/piggy.js (nuevo, puro y probado): reparto exacto de casillas (planBoxes, autoBigCount, bigRange),
+  casillas que tacha un ingreso (chooseBoxes), estado (piggyStatus/piggyStatuses) y análisis (analyzePiggy:
+  plan, diferencia, € por semana y día, proyección, racha y consejos con tus ingresos y gastos).
+- Modelo (esquema v3): entidad Piggy y movimientos de tipo 'piggy' (in/out, casillas, cuenta opcional), con
+  integridad por orden de creación; no se pueden programar; el panel «Huchas» se añade a Inicio al migrar.
+- finance: efecto en cuentas, patrimonio con lo que hay en huchas, serie de patrimonio y caché derived.piggies.
+- store: addPiggy, updatePiggy, deletePiggy, depositToPiggy, emptyPiggy, undoLastPiggyMovement, piggyInfo;
+  borrar una cuenta conserva sus movimientos de huchas sin cuenta; recuperar un movimiento de hucha solo si
+  sigue siendo el último.
+- Vistas: Más → Huchas (lista con total ahorrado), detalle con análisis, estadísticas, cuadrícula (mezcladas
+  / por importe / ocultar pagadas), historial con deshacer el último y vaciar; hojas de crear (con reparto
+  y «Otra distribución»), meter dinero (atajos, vista previa de casillas y cuenta) y vaciar. Panel en Inicio,
+  línea «En huchas» en el patrimonio, movimientos de huchas en la lista, búsqueda, filtros y CSV (columna «Hucha»).
+
+Por qué:
+Petición de la persona propietaria: huchas como la app de referencia, con análisis. Decidió: análisis calculado
+en el móvil (sin IA externa), dinero que puede salir de una cuenta y ubicación en Más + tarjeta en Inicio.
+
+Archivos / recursos afectados:
+- app/js/core/piggy.js (nuevo), model.js, finance.js, store.js, money.js, backup.js, catalog.js
+- app/js/views/piggies.js (nuevo), home.js, more.js, movements.js, movement-form.js, accounts.js; app/js/ui/format.js; app/js/main.js
+- app/css/app.css; tests/piggy.test.js (nuevo), fixtures.js, store.test.js, backup.test.js, run.js
+- GUIA-DE-USO.md, DOCUMENTACION-TECNICA.md, to-do.md
+
+Verificación:
+- 82/82 tests; tools/release.py sin avisos.
+- En el navegador (tamaño iPhone, claro y oscuro): crear «Vacaciones 2027» (10.000 € en 365 casillas → 6 × 200 €
+  automáticas, «365 casillas · unos 192 € por semana»), meter 352 € desde una cuenta (3 casillas y 2 € sueltos;
+  la cuenta baja 352 € y el patrimonio no cambia), tocar una casilla de 20 €, ordenar por importe, ocultar
+  pagadas, historial con «Deshacer» en el último, panel en Inicio y «En huchas» en el patrimonio.
+
+---
+
 ## 2026-10-11 — Inicio personalizable, Análisis anual y aclaración de Face ID
 
 Tipo: decisión | cambio

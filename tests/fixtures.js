@@ -23,6 +23,7 @@ export function sampleState() {
       { id: 'budgetTot', name: '', categoryIds: null, amount: 10000 },
       { id: 'budgetFun', name: '', categoryIds: ['catFunXXX'], amount: 1500 },
     ],
+    piggies: [],
     recurring: [],
     movements: [
       { id: 'mov00001', date: '2026-09-10', type: 'expense', amount: 5000, accountId: 'accountAAA', categoryId: 'catFoodXX', note: '', ts: 1 },

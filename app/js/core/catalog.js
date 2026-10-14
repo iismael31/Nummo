@@ -101,6 +101,7 @@ export const HOME_PANELS = [
   { key: 'month', label: 'Este mes', help: 'Ingresos, gastos y resultado del mes.' },
   { key: 'pace', label: 'Ritmo de gasto', help: 'Lo gastado, la media al día y la previsión para final de mes.' },
   { key: 'budgets', label: 'Presupuestos', help: 'Cómo vas con tus límites del mes.' },
+  { key: 'piggies', label: 'Huchas', help: 'Lo que llevas ahorrado en cada hucha y si vas bien.' },
   { key: 'accounts', label: 'Cuentas', help: 'El saldo de cada cuenta.' },
   { key: 'debts', label: 'Deudas', help: 'Lo que debes, lo que te deben y las fechas límite.' },
   { key: 'categories', label: 'Gastos por categoría', help: 'En qué gastas este mes, con su gráfico.' },
@@ -114,4 +115,4 @@ export const HOME_PANELS = [
 ];
 export const HOME_PANEL_KEYS = HOME_PANELS.map((p) => p.key);
 /** Lo que se ve en Inicio al empezar (el diseño de siempre). */
-export const DEFAULT_HOME_PANELS = ['networth', 'month', 'budgets', 'accounts', 'upcoming', 'recent'];
+export const DEFAULT_HOME_PANELS = ['networth', 'month', 'budgets', 'piggies', 'accounts', 'upcoming', 'recent'];

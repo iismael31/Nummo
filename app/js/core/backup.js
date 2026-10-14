@@ -101,7 +101,8 @@ export async function openBackup(parsed, password) {
 
 // --- CSV (Excel / Numbers en español: separador «;», coma decimal y BOM UTF-8) ------------------
 
-const TYPE_LABELS = { expense: 'Gasto', income: 'Ingreso', transfer: 'Transferencia', debt: 'Deuda' };
+const TYPE_LABELS = { expense: 'Gasto', income: 'Ingreso', transfer: 'Transferencia', debt: 'Deuda', piggy: 'Hucha' };
+const PIGGY_LABELS = { in: 'Meter', out: 'Vaciar' };
 const DEBT_LABELS = {
   'owe:add': 'Me prestan', 'owe:pay': 'Pago', 'owed:add': 'Presto', 'owed:pay': 'Cobro',
 };
@@ -117,7 +118,8 @@ export function toCSV(state) {
   const accounts = new Map(state.accounts.map((a) => [a.id, a.name]));
   const categories = new Map(state.categories.map((c) => [c.id, c.name]));
   const debts = new Map(state.debts.map((d) => [d.id, d]));
-  const header = ['Fecha', 'Tipo', 'Importe', 'Cuenta', 'Cuenta destino', 'Categoría', 'Deuda', 'Operación', 'Nota'];
+  const piggies = new Map((state.piggies ?? []).map((p) => [p.id, p.name]));
+  const header = ['Fecha', 'Tipo', 'Importe', 'Cuenta', 'Cuenta destino', 'Categoría', 'Deuda', 'Hucha', 'Operación', 'Nota'];
   const lines = [header.map(textCell).join(';')];
   const sorted = [...state.movements].sort((a, b) => a.date.localeCompare(b.date) || a.ts - b.ts);
   for (const m of sorted) {
@@ -125,6 +127,7 @@ export function toCSV(state) {
     let signed = m.amount;
     if (m.type === 'expense') signed = -m.amount;
     if (debt && m.accountId) signed = debtAccountSign(debt.kind, m.flow) * m.amount;
+    if (m.type === 'piggy' && m.accountId) signed = m.flow === 'in' ? -m.amount : m.amount;
     lines.push([
       m.date,
       textCell(TYPE_LABELS[m.type]),
@@ -133,7 +136,8 @@ export function toCSV(state) {
       textCell(accounts.get(m.toAccountId) ?? ''),
       textCell(categories.get(m.categoryId) ?? ''),
       textCell(debt?.name ?? ''),
-      textCell(debt ? DEBT_LABELS[`${debt.kind}:${m.flow}`] : ''),
+      textCell(m.type === 'piggy' ? piggies.get(m.piggyId) ?? '' : ''),
+      textCell(debt ? DEBT_LABELS[`${debt.kind}:${m.flow}`] : m.type === 'piggy' ? PIGGY_LABELS[m.flow] : ''),
       textCell(m.note),
     ].join(';'));
   }

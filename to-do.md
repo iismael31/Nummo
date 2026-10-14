@@ -18,6 +18,10 @@
 
 ### Sugerencias (fuera del alcance de la v1)
 
+- [ ] 🟢 [funcionalidad] Huchas: ingresos programados (por ejemplo, 20 € cada lunes), sacar una parte sin vaciarla
+      y aviso cuando una hucha se quede atrás.
+      Justificación: hoy los ingresos son manuales y vaciar la cierra entera.
+
 - [ ] 🟢 [optimización] Bloques mensuales ('mov-AAAA-MM') en lugar de anuales y escrituras agrupadas en una microtarea.
       Justificación: con más de 20.000 movimientos, cada cambio recifra el año entero (≈1 MB; 6-15 ms en un móvil).
 - [ ] 🟢 [limpieza] Unificar en un solo componente los grupos de selección (segmented, chipPicker, categoryGrid,
@@ -45,6 +49,9 @@
       Justificación: hoy cada instalación es independiente; requeriría un servidor y cuentas de usuario.
 
 ## Completados
+
+- [x] 2026-10-14 — Huchas (retos de ahorro por casillas) con análisis local: reparto exacto de casillas, meter dinero
+      desde una cuenta o sin cuenta, tocar casillas, historial con deshacer, vaciar, panel en Inicio y patrimonio (esquema v3).
 
 - [x] 2026-10-11 — Inicio personalizable (14 paneles: mostrar, ocultar y ordenar) y Análisis por año
       (resumen, media mensual, categorías, mes a mes y patrimonio). Face ID se mantiene con llave de acceso

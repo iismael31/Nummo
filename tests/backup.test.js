@@ -52,9 +52,9 @@ test('backup: CSV para Excel en español y sin inyección de fórmulas', () => {
   const csv = toCSV(state);
   const lines = csv.split('\r\n');
   assert.ok(csv.startsWith('﻿'), 'BOM UTF-8');
-  assert.equal(lines[0], '﻿"Fecha";"Tipo";"Importe";"Cuenta";"Cuenta destino";"Categoría";"Deuda";"Operación";"Nota"');
-  assert.equal(lines[1], '2026-09-10;"Gasto";-50,00;"Banco A";"";"Comida";"";"";"\'=HYPERLINK(""http://malo"")"');
-  assert.ok(lines.some((l) => l.startsWith('2026-10-03;"Deuda";300,00;"Banco A";"";"";"Hermano";"Me prestan"')));
-  assert.ok(lines.some((l) => l.startsWith('2026-10-06;"Deuda";15,00;"";"";"";"Laura";"Cobro"')));
+  assert.equal(lines[0], '﻿"Fecha";"Tipo";"Importe";"Cuenta";"Cuenta destino";"Categoría";"Deuda";"Hucha";"Operación";"Nota"');
+  assert.equal(lines[1], '2026-09-10;"Gasto";-50,00;"Banco A";"";"Comida";"";"";"";"\'=HYPERLINK(""http://malo"")"');
+  assert.ok(lines.some((l) => l.startsWith('2026-10-03;"Deuda";300,00;"Banco A";"";"";"Hermano";"";"Me prestan"')));
+  assert.ok(lines.some((l) => l.startsWith('2026-10-06;"Deuda";15,00;"";"";"";"Laura";"";"Cobro"')));
   assert.equal(lines.length, state.movements.length + 2, 'cabecera + movimientos + línea final vacía');
 });

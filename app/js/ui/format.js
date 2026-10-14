@@ -83,9 +83,21 @@ export const DEBT_FLOW_LABELS = {
  * Cómo se muestra un movimiento: título, subtítulo, icono, color e importe con signo.
  * lookups: { accounts: Map, categories: Map, debts: Map }
  */
-export function describeMovement(m, { accounts, categories, debts }) {
+export function describeMovement(m, { accounts, categories, debts, piggies }) {
   const account = accounts.get(m.accountId);
   const note = m.note;
+  if (m.type === 'piggy') {
+    const piggy = piggies?.get(m.piggyId);
+    const boxes = m.boxes.length ? `${m.boxes.length} ${m.boxes.length === 1 ? 'casilla' : 'casillas'}` : '';
+    return {
+      title: piggy?.name ?? 'Hucha',
+      subtitle: [m.flow === 'in' ? 'Hucha' : 'Hucha vaciada', note, boxes, account?.name ?? 'Sin cuenta'].filter(Boolean).join(' · '),
+      icon: piggy?.icon ?? 'pig-money',
+      tone: piggy?.color ?? 'green',
+      amount: m.accountId ? formatSigned(m.flow === 'in' ? -m.amount : m.amount) : formatMoney(m.amount),
+      amountClass: !m.accountId ? 'neutral' : m.flow === 'out' ? 'pos' : '',
+    };
+  }
   if (m.type === 'transfer') {
     const to = accounts.get(m.toAccountId);
     return {
@@ -127,5 +139,6 @@ export function lookups(state) {
     accounts: new Map(state.accounts.map((a) => [a.id, a])),
     categories: new Map(state.categories.map((c) => [c.id, c])),
     debts: new Map(state.debts.map((d) => [d.id, d])),
+    piggies: new Map((state.piggies ?? []).map((p) => [p.id, p])),
   };
 }

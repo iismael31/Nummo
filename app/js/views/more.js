@@ -54,6 +54,7 @@ export function moreView() {
         row({ lead: tile({ icon: 'building-bank', color: 'blue' }), title: 'Cuentas', value: count(state.accounts.filter((a) => !a.archived).length), chevron: true, onClick: go('/mas/cuentas') }),
         row({ lead: tile({ icon: 'tag', color: 'orange' }), title: 'Categorías', chevron: true, onClick: go('/mas/categorias') }),
         row({ lead: tile({ icon: 'target', color: 'green' }), title: 'Presupuestos', value: count(state.budgets.length), chevron: true, onClick: go('/mas/presupuestos') }),
+        row({ lead: tile({ icon: 'pig-money', color: 'pink' }), title: 'Huchas', subtitle: 'Ahorra casilla a casilla', value: count(state.piggies.length), chevron: true, onClick: go('/mas/huchas') }),
         row({ lead: tile({ icon: 'repeat', color: 'purple' }), title: 'Programados', subtitle: 'Alquiler, nómina, suscripciones…', value: count(state.recurring.filter((r) => r.active).length), chevron: true, onClick: go('/mas/programados') }),
       ])),
       section({ title: 'Seguridad y copias' }, list([

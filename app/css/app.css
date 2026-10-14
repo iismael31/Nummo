@@ -285,6 +285,42 @@ button.card { width: 100%; border: 0; text-align: left; color: inherit; }
 .budget-top { display: flex; align-items: center; gap: 12px; }
 .budget-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 
+/* ---------------------------------------------------------------- Huchas */
+.chips.wrap { flex-wrap: wrap; margin: 0; padding: 0; overflow: visible; }
+.chip.static { cursor: default; }
+.hero-value small { margin-left: 6px; font-size: 17px; font-weight: 500; letter-spacing: 0; }
+.piggy-progress { position: relative; }
+.piggy-marker { position: absolute; top: -3px; width: 3px; height: 14px; margin-left: -1.5px; border-radius: 2px; background: var(--text); opacity: 0.55; }
+.piggy-analysis { display: grid; gap: 10px; }
+.piggy-analysis p { margin: 0; }
+.piggy-bar { display: grid; grid-template-columns: 76px 1fr 48px; align-items: center; gap: 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.piggy-bar > span:last-child { text-align: right; }
+.piggy-tip { display: flex; gap: 8px; align-items: flex-start; color: var(--text-2); font-size: 15px; }
+.piggy-tip .icon { flex: none; width: 20px; height: 20px; color: var(--accent); margin-top: 1px; }
+.piggy-grid-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.piggy-plan { display: grid; gap: 10px; }
+.piggy-plan p { margin: 0; }
+.piggy-plan .btn-text { display: inline-flex; align-items: center; gap: 6px; justify-self: start; }
+.box-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; }
+.box {
+  min-height: 40px;
+  padding: 0 2px;
+  border: 1px solid var(--sep);
+  border-radius: 9px;
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.box[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--pos-fill) 45%, transparent);
+  background: color-mix(in srgb, var(--pos-fill) 18%, var(--bg-elev));
+  color: var(--pos);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
 /* ---------------------------------------------------------------- Botones */
 .btn {
   display: inline-flex;

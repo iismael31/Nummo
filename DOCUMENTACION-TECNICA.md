@@ -85,9 +85,9 @@ Ciclo de vida (`app/js/main.js`):
 
 Accesibilidad de la interfaz (`ui/focus.js`, `ui/sheet.js`, `ui/pinpad.js`):
 
-- **Sin teclado por sorpresa.** Ninguna hoja enfoca un campo al abrirse: el teclado solo aparece cuando la persona toca uno. El foco empieza en «Cancelar».
+- **Sin teclado por sorpresa.** Ninguna hoja enfoca un campo al abrirse: el teclado solo aparece cuando la persona toca uno. El foco empieza en el título de la hoja (`tabindex=-1`, sin recuadro), que es lo que lee el lector de pantalla; antes estaba en «Cancelar» y a veces se veía el recuadro de foco.
 - **Foco estable.** Al repintar una vista, el foco vuelve al mismo botón (se identifica por su tipo y su texto). Al cerrar una hoja vuelve al botón que la abrió o, si ya no existe, al título de la pantalla.
-- **Alertas seguras.** Las confirmaciones empiezan con el foco en «Cancelar», así que Intro o Espacio nunca confirman por error.
+- **Alertas seguras.** Las confirmaciones empiezan con el foco en su título (o en el campo a escribir), nunca en un botón: Intro o Espacio no confirman por error.
 - **Anuncios medidos.** Los cambios de paso al crear o cambiar el PIN se anuncian. La cuenta atrás por intentos fallidos se anuncia al empezar y al terminar, no cada segundo.
 - **Avisos con «Deshacer».** Duran 8 s y no desaparecen mientras tienen el foco o el dedo o el puntero encima.
 
@@ -212,7 +212,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
 | **Debt** | `id, kind (owe\|owed), name, note (≤140), dueDate \| null` |
 | **Budget** | `id, name (≤40, opcional), categoryIds \| null (null = total del mes), amount` (mensual). Una categoría puede estar en varios presupuestos; solo hay un total |
 | **Recurring** | `id, active, frequency (weekly\|monthly\|yearly), interval (1–12), startDate, index, endDate \| null, template` |
-| **Piggy** (hucha) | `id, name (≤40), icon, color, goal, startDate, deadline (> startDate), boxes [céntimos…] (1–1.000, suman `goal`), order` |
+| **Piggy** (hucha) | `id, name (≤40), icon, color, goal, startDate, deadline (> startDate), boxes [céntimos…] (1–1.000, suman `goal`), includeInTotal (por defecto true), order` |
 | **Movement** | `id, date, type (expense\|income\|transfer\|debt\|piggy), amount (>0), accountId, toAccountId (transfer), categoryId (expense/income), debtId + flow (add\|pay) (debt), piggyId + flow (in\|out) + boxes [índices] (piggy), note, recurringId?, ts` |
 | **Settings** | `autoLockSec (0\|60\|300\|900), lastBackupAt, lastAccountId, installHintDismissed, homePanels` (claves de `HOME_PANELS` en orden; las que no están se ocultan) |
 
@@ -227,7 +227,7 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
   - movimiento de deuda con cuenta: signo = `(kind==='owe') === (flow==='add') ? + : −`.
 - **Pendiente de una deuda.** Es Σ`add` − Σ`pay`.
 - **Tipo de deuda.** Se puede cambiar al editarla, para corregir una deuda apuntada al revés. Como el signo depende de `kind`, el cambio invierte el efecto de todos sus movimientos en las cuentas.
-- **Patrimonio neto.** Saldo de las cuentas con `includeInTotal` − lo que debes + lo que te deben + lo que hay en las huchas.
+- **Patrimonio neto.** Saldo de las cuentas con `includeInTotal` − lo que debes + lo que te deben + lo que hay en las huchas con `includeInTotal`. Una hucha que no suma es un ahorro aparte: meter dinero desde una cuenta incluida baja el patrimonio, y `totalPiggies` («En huchas») y `netWorthSeries` la excluyen.
 - **Huchas (`core/piggy.js`).**
   - Lo metido, las casillas pagadas, lo «suelto» y si está vaciada salen de sus movimientos `piggy`; la hucha solo guarda el objetivo, las fechas y las casillas.
   - **Reparto (`planBoxes`).** Parte de todas las casillas en el importe menor y las va subiendo: primero al azar, para que haya de todo, y luego ajustando hasta sumar exactamente el objetivo. Las casillas grandes son, por defecto, ≈ 12 % del objetivo (`autoBigCount`). Si no hay suma exacta (por ejemplo, 1.001 € solo con casillas de 10 y 20 €), lo dice.
@@ -248,7 +248,8 @@ Todos los importes son **céntimos enteros** (máximo ±999.999.999,99 €). Las
   - Mes: gasto frente a la media de los 3 meses anteriores con datos (en el mes en curso, «a estas alturas»: hasta el mismo día), categoría que más sube o baja (±30 % y ≥ 20 €), gastos hormiga (≥ 8 de ≤ 10 € en una categoría), gasto raro (≥ 3 veces la mediana de su categoría en 6 meses y ≥ 50 €), ahorro y tasa, racha de meses ahorrando y presupuestos (pasado, previsión del día en que se supera o todo bien).
   - Los primeros 5 días del mes no se compara ni se prevé, y no se juzga el ahorro del mes en curso hasta que entra algún ingreso (para quien cobra a final de mes).
   - Año: previsión de ahorro (meses cerrados + su media × meses que quedan), frente al mismo periodo del año anterior, categoría que más sube, categoría principal, mejor mes y el de más gasto, y racha.
-- **Inicio.** Cada panel es una función de `PANELS` en `views/home.js`; el catálogo (clave, nombre, ayuda) está en `HOME_PANELS` de `catalog.js` y el orden visible en `settings.homePanels`. Los avisos (versión, copia, instalación) van siempre arriba.
+- **Pantalla de un presupuesto** (`#/mas/presupuestos/:id`, `budgetDetailView`). Pestañas «Movimientos» (por defecto: gastos de sus categorías, o todos si es el total, en el mes elegido) y «Configuración» (formulario en la página; el borrador vive en el estado de la vista para sobrevivir a los repintados). `showBudget(id, mes)` la abre desde la lista, Inicio y Análisis.
+- **Inicio.** Cada panel es una función de `PANELS` en `views/home.js`; el catálogo (clave, nombre, ayuda) está en `HOME_PANELS` de `catalog.js` y el orden visible en `settings.homePanels`. Los avisos (versión, copia, instalación) van siempre arriba. El editor trabaja sobre un borrador: «Guardar» lo aplica y «Cancelar» lo descarta.
 - **Presupuestos.** Lo gastado es la suma de sus categorías (o de todo el gasto, en el total). Nivel `warn` al llegar al 80 % y `over` al superarse. Al borrar una categoría sale de sus presupuestos, y los que se quedan sin ninguna desaparecen.
 - **Programados.**
   - La ocurrencia *k* se calcula siempre desde la fecha de inicio, inicio + *k*·intervalo. Así no hay deriva: el día 31 cae el 28/29 de febrero y vuelve al 31 en marzo.
@@ -381,7 +382,7 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
 ## 10. Tests
 
 - **Ejecutar.** Arranca `python3 tools/serve.py` y abre http://127.0.0.1:8080/tests/. Usan una base de datos IndexedDB aparte, `nummo-test`.
-- **Qué cubren (85 tests).**
+- **Qué cubren (86 tests).**
   - Interpretación y formato de importes.
   - Fechas: bisiestos, anclaje de día y cambios de mes y año.
   - Validación del modelo en modo estricto y de reparación, integridad referencial, saneado y conversión de datos de la versión 1.
@@ -389,7 +390,7 @@ Mediciones con 20.000 movimientos (unos 3 MB de JSON) en un Mac con Chromium; en
   - Paneles de Inicio: solo claves conocidas, sin repetir, y los de siempre por defecto.
   - Comentarios: mes cerrado (media, categoría que sube, gastos hormiga, gasto raro, ahorro, racha y presupuestos), mes en curso (nada los primeros días, sin alarma antes de cobrar, previsión del presupuesto) y año (previsión, categoría principal, mejor mes y racha).
   - Programados: deriva, fin, pausa y tope.
-  - Huchas: reparto exacto (25 semillas), casillas grandes, sin solución, qué casillas tacha cada ingreso, análisis con los números de un reto real (1.000 € en 91 días), cuentas y patrimonio, suelto, deshacer, vaciar, borrar cuenta y hucha, datos incoherentes y conversión de datos antiguos.
+  - Huchas: reparto exacto (25 semillas), casillas grandes, sin solución, qué casillas tacha cada ingreso, análisis con los números de un reto real (1.000 € en 91 días), cuentas y patrimonio, hucha que no suma al total, suelto, deshacer, vaciar, borrar cuenta y hucha, datos incoherentes y conversión de datos antiguos.
   - Cifrado: ida y vuelta, AAD, manipulación y Base64.
   - Caja fuerte: crear y desbloquear, nada legible en disco, límite de intentos, cambio de PIN y desbloqueo biométrico (secreto incorrecto, PIN cada 7 días, la hora que retrocede, cambio de PIN y desactivación).
   - Almacén: persistencia, cascadas, deshacer, programados y restauración.

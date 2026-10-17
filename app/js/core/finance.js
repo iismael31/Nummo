@@ -63,8 +63,8 @@ export function computeDebtTotals(state) {
 export function summarize(state, piggies = piggyStatuses(state)) {
   const balances = computeBalances(state);
   const debtTotals = computeDebtTotals(state);
-  let totalPiggies = 0;
-  for (const status of piggies.values()) totalPiggies += status.saved;
+  let totalPiggies = 0; // solo las huchas que suman al total
+  for (const p of state.piggies) if (p.includeInTotal) totalPiggies += piggies.get(p.id)?.saved ?? 0;
   let totalBalance = 0;
   for (const a of state.accounts) if (a.includeInTotal) totalBalance += balances.get(a.id) ?? 0;
   let owe = 0; // con signo: una deuda pagada de más resta de lo que debes (patrimonio exacto)
@@ -156,6 +156,7 @@ export function netWorthSeries(state, endKey, count) {
   const months = monthRange(endKey, count);
   const kinds = debtKinds(state);
   const included = new Set(state.accounts.filter((a) => a.includeInTotal).map((a) => a.id));
+  const includedPiggies = new Set(state.piggies.filter((p) => p.includeInTotal).map((p) => p.id));
   let value = state.accounts.reduce((sum, a) => sum + (a.includeInTotal ? a.initial : 0), 0);
   const deltas = [];
   for (const m of state.movements) {
@@ -165,7 +166,7 @@ export function netWorthSeries(state, endKey, count) {
       const pendingDelta = m.flow === 'add' ? m.amount : -m.amount;
       delta += kinds.get(m.debtId) === 'owe' ? -pendingDelta : pendingDelta;
     }
-    if (m.type === 'piggy') delta += m.flow === 'in' ? m.amount : -m.amount;
+    if (m.type === 'piggy' && includedPiggies.has(m.piggyId)) delta += m.flow === 'in' ? m.amount : -m.amount;
     if (delta !== 0) deltas.push([m.date, delta]);
   }
   deltas.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));

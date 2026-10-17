@@ -143,6 +143,8 @@ export function normalizePiggy(raw) {
     startDate: raw.startDate,
     deadline: raw.deadline,
     boxes,
+    // false: es un ahorro aparte que no cuenta en el patrimonio neto ni en «En huchas».
+    includeInTotal: raw.includeInTotal !== false,
     order: orderOf(raw.order),
   };
 }

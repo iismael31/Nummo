@@ -5,7 +5,7 @@ import { h, replace } from '../ui/dom.js';
 import { icon } from '../ui/icons.js';
 import {
   section, list, row, tile, field, textInput, amountInput, dateInput, readDate, errorText, emptyState,
-  segmented, chipPicker, iconPicker, colorPicker, progress,
+  segmented, chipPicker, iconPicker, colorPicker, progress, toggleRow,
 } from '../ui/components.js';
 import { lookups, shortDate } from '../ui/format.js';
 import { openSheet, confirmDialog } from '../ui/sheet.js';
@@ -81,7 +81,7 @@ export function piggyItem(piggy, status, today, { onClick = null } = {}) {
         tile(piggy, 'sm'),
         h('span', { class: 'row-main' },
           h('span', { class: 'row-title' }, piggy.name),
-          h('span', { class: 'row-sub' }, [`${formatEuros(status.deposited)} de ${formatEuros(piggy.goal)}`, days].filter(Boolean).join(' · '))),
+          h('span', { class: 'row-sub' }, [`${formatEuros(status.deposited)} de ${formatEuros(piggy.goal)}`, days, piggy.includeInTotal ? null : 'no suma al total'].filter(Boolean).join(' · '))),
         h('span', { class: ['badge', level.badge] }, running ? pct(a.ratio) : level.label)),
       progress(a.ratio, level.bar, `${piggy.name}: ${pct(a.ratio)} ahorrado`),
       running || a.level === 'late'
@@ -417,6 +417,7 @@ export function openPiggyForm({ piggy = null } = {}) {
     count: 100,
     denominations: new Set(DEFAULT_DENOMINATIONS),
     plan: null,
+    includeInTotal: piggy?.includeInTotal ?? true,
   };
   const name = textInput({ value: piggy?.name ?? '', placeholder: 'Por ejemplo: Vacaciones 2027', maxLength: LIMITS.name });
   const deadline = dateInput(piggy?.deadline ?? addYears(today, 1));
@@ -516,7 +517,7 @@ export function openPiggyForm({ piggy = null } = {}) {
     }
     try {
       if (editing) {
-        store.updatePiggy(piggy.id, { name: name.value, deadline: day, icon: draft.icon, color: draft.color });
+        store.updatePiggy(piggy.id, { name: name.value, deadline: day, icon: draft.icon, color: draft.color, includeInTotal: draft.includeInTotal });
         sheet.close();
         toast('Hucha guardada');
         return;
@@ -526,7 +527,7 @@ export function openPiggyForm({ piggy = null } = {}) {
         error.textContent = 'Ajusta el reparto de casillas (mira el aviso de arriba).';
         return;
       }
-      const created = store.addPiggy({ name: name.value, icon: draft.icon, color: draft.color, goal: goalCents(), deadline: day, boxes: draft.plan.boxes });
+      const created = store.addPiggy({ name: name.value, icon: draft.icon, color: draft.color, goal: goalCents(), deadline: day, boxes: draft.plan.boxes, includeInTotal: draft.includeInTotal });
       sheet.close();
       toast('Hucha creada');
       router.navigate(`/mas/huchas/${created.id}`);
@@ -571,6 +572,9 @@ export function openPiggyForm({ piggy = null } = {}) {
           bigBox,
           summary,
         ],
+      list([toggleRow('Sumar al total', draft.includeInTotal, (checked) => { draft.includeInTotal = checked; }, {
+        help: 'Desactívalo para que sea un ahorro aparte: no contará en tu patrimonio neto ni en «En huchas».',
+      })], { plain: true }),
       field('Símbolo', icons.el),
       field('Color', colorPicker(draft.color, (value) => { draft.color = value; icons.setColor(value); refreshTile(); })),
       error,

@@ -50,6 +50,9 @@
 
 ## Completados
 
+- [x] 2026-10-17 — Huchas con «Sumar al total» (ahorro aparte); pantalla de cada presupuesto con pestañas
+      Movimientos y Configuración; editor de Inicio con Guardar/Cancelar; sin recuadro de foco en «Cancelar».
+
 - [x] 2026-10-14 — Comentarios automáticos sobre gastos, ahorro y presupuestos en Análisis (mes y año) y panel
       «Comentarios» en Inicio. La media anual cuenta desde el primer mes con movimientos.
 

@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-10-17 — Huchas fuera del total, presupuesto con pestañas, editor de Inicio y foco
+
+Tipo: cambio | incidencia
+
+Qué se hizo:
+- Huchas: campo includeInTotal por hucha (decisión de la persona propietaria; por defecto true, sin
+  cambio de esquema). summarize y netWorthSeries solo cuentan las que suman; interruptor «Sumar al
+  total» en el formulario y «no suma al total» en la lista.
+- Presupuestos: pantalla #/mas/presupuestos/:id con pestañas «Movimientos» (por defecto, decisión de la
+  persona propietaria) y «Configuración». El formulario se reutiliza (budgetFields) en la hoja de crear y
+  en la pestaña, con un borrador que sobrevive a los repintados. Se abre desde la lista, Inicio y Análisis
+  (en Análisis, en el mes que se estaba viendo).
+- Inicio: el editor trabaja sobre un borrador; «Guardar» (arriba y abajo) aplica, «Cancelar» descarta.
+- Bug: el recuadro azul en «Cancelar». Al abrirse, las hojas y alertas enfocaban el primer botón y el
+  navegador a veces lo marcaba como foco visible. Ahora enfocan su título (tabindex -1, sin recuadro); las
+  alertas con campo enfocan el campo. Intro sigue sin confirmar nada por error.
+
+Por qué:
+Peticiones de la persona propietaria (3 mejoras y 1 bug).
+
+Archivos / recursos afectados:
+- app/js/core/model.js, finance.js
+- app/js/ui/sheet.js
+- app/js/views/piggies.js, budgets.js, home.js, stats.js; app/js/main.js
+- tests/piggy.test.js
+- GUIA-DE-USO.md, DOCUMENTACION-TECNICA.md, to-do.md
+
+Verificación:
+- 86/86 tests (nuevo: hucha que no suma al total, con patrimonio, «En huchas» y gráfica).
+- En el navegador: al abrir una hoja y una alerta el foco queda en el título; Cancelar del editor de
+  Inicio no cambia nada y Guardar sí; el presupuesto se abre desde Inicio en «Movimientos» (3 gastos de
+  octubre, cambio a septiembre), la configuración conserva el borrador al repintar y guarda el nombre; el
+  formulario de hucha muestra «Sumar al total».
+
+---
+
 ## 2026-10-14 — Comentarios automáticos de gastos, ahorro y presupuestos
 
 Tipo: cambio

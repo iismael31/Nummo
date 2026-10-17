@@ -60,6 +60,7 @@ En **Inicio**, pulsa **Editar** (arriba a la derecha):
 - **Quita** un panel con la ✕ y **ordénalos** con las flechas.
 - En **Más paneles** puedes **añadir**: comentarios del mes, ritmo de gasto (media diaria y previsión del mes), deudas, gastos por categoría, gráficas de ingresos y gastos y del patrimonio, resumen del año, mayores gastos del mes y accesos rápidos para apuntar.
 - **Volver a los paneles de siempre** deja Inicio como al principio.
+- Pulsa **Guardar** para aplicar los cambios. **Cancelar** los descarta y deja Inicio como estaba.
 
 Los avisos importantes (versión nueva, copia de seguridad) siempre salen arriba. Tu Inicio se guarda en la copia de seguridad.
 
@@ -119,6 +120,11 @@ Dentro de cada deuda verás cuánto **te queda**, una barra de progreso y el his
 
 La barra se pone **ámbar** al llegar al 80 % y **roja** si te pasas. Los presupuestos en riesgo aparecen también en **Inicio**, y cada mes empiezan de cero.
 
+**Toca un presupuesto** (aquí, en Inicio o en Análisis) para abrir su pantalla, con dos pestañas:
+
+- **Movimientos**: los gastos de sus categorías en el mes, con cuánto llevas frente al límite. Cambia de mes con las flechas.
+- **Configuración**: cambia el nombre, el límite o las categorías y pulsa **Guardar cambios**, o **Quita** el presupuesto.
+
 ### Huchas: ahorra casilla a casilla
 
 Para ahorrar para algo concreto (unas vacaciones, una consola…): **Más → Huchas → Nueva hucha**.
@@ -133,10 +139,11 @@ Para ahorrar:
 - **Meter dinero**: escribe cuánto has metido (o usa +2 €, +5 €…). La app te dice qué casillas va a tachar, empezando por las más grandes que caben. Lo que no completa una casilla se queda «suelto» y se usa en el siguiente ingreso.
 - **Tocar una casilla**: metes justo ese importe y se tacha esa casilla.
 - **De dónde sale el dinero**: si eliges una cuenta, su saldo baja (el dinero pasa a la hucha y tu patrimonio no cambia). Deja «Ninguna» si es una hucha física.
+- **Sumar al total**: al crear o editar la hucha puedes desactivarlo para que sea un ahorro aparte. Entonces su dinero no cuenta en tu patrimonio neto ni en «En huchas» (en la lista verás «no suma al total»).
 - **Historial**: cada ingreso con sus casillas. Puedes **deshacer** el último.
 - **Vaciar la hucha**: cuando la consigas (o si la rompes antes), sacas todo a una cuenta o sin cuenta y la hucha queda terminada.
 
-El **análisis** de cada hucha te dice si vas bien según el plan, cuánto te toca por semana y al día, cuándo acabarás a tu ritmo y tu racha de semanas ahorrando. También te da consejos con tus propios datos: lo que sueles ahorrar al mes, lo que llevas este mes y tu mayor gasto. Todo se calcula en el móvil: no se envía nada a ningún sitio. Tus huchas aparecen también en **Inicio** y lo que hay en ellas cuenta en tu **patrimonio**.
+El **análisis** de cada hucha te dice si vas bien según el plan, cuánto te toca por semana y al día, cuándo acabarás a tu ritmo y tu racha de semanas ahorrando. También te da consejos con tus propios datos: lo que sueles ahorrar al mes, lo que llevas este mes y tu mayor gasto. Todo se calcula en el móvil: no se envía nada a ningún sitio. Tus huchas aparecen también en **Inicio** y lo que hay en ellas cuenta en tu **patrimonio** (salvo las que no suman al total).
 
 ### Movimientos programados
 

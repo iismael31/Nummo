@@ -7,6 +7,7 @@ import { section, list, row, tile, notice, emptyState } from '../ui/components.j
 import { lookups, monthLabel, ago, shortDate, frequencyLabel, describeMovement } from '../ui/format.js';
 import { incomeExpenseChart, netWorthChart } from '../ui/charts.js';
 import { openSheet } from '../ui/sheet.js';
+import { toast } from '../ui/toast.js';
 import { focusKey, restoreFocus } from '../ui/focus.js';
 import * as router from '../ui/router.js';
 import { pwa, promptInstall, applyUpdate } from '../ui/pwa.js';
@@ -22,6 +23,7 @@ import { showStatsFor } from './stats.js';
 import { insightList } from './insights.js';
 import { monthInsights } from '../core/insights.js';
 import { piggyItem } from './piggies.js';
+import { showBudget } from './budgets.js';
 
 const BACKUP_REMINDER_DAYS = 30;
 
@@ -129,7 +131,7 @@ const PANELS = {
     const statuses = derived.budgets(monthKey);
     return section({ title: 'Presupuestos', action: { label: statuses.length ? 'Ver todos' : 'Crear', onClick: () => router.navigate('/mas/presupuestos') } },
       statuses.length
-        ? list(statuses.slice(0, 3).map((b) => budgetItem(b, look)))
+        ? list(statuses.slice(0, 3).map((b) => budgetItem(b, look, { onClick: () => showBudget(b.id) })))
         : h('div', { class: 'card' }, emptyState('target', 'Sin presupuestos', 'Pon un límite al mes y te avisaré al acercarte.')));
   },
 
@@ -240,16 +242,23 @@ const PANELS = {
 
 // --- Editar Inicio ----------------------------------------------------------------------------------
 
+/** Los cambios se hacen sobre un borrador: «Guardar» los aplica y «Cancelar» los descarta. */
 function openHomeEditor() {
   const content = h('div', { class: 'form' });
-  const save = (keys) => {
+  let draft = [...store.getState().settings.homePanels];
+  const change = (keys) => {
     const focused = focusKey(document.activeElement); // tras repintar, el foco sigue en el mismo botón
-    store.updateSettings({ homePanels: keys });
+    draft = keys;
     render();
     restoreFocus(content, focused);
   };
+  const save = () => {
+    store.updateSettings({ homePanels: draft });
+    sheet.close();
+    toast('Inicio guardado');
+  };
   const render = () => {
-    const shown = store.getState().settings.homePanels;
+    const shown = draft;
     const info = (key) => HOME_PANELS.find((p) => p.key === key);
     const items = shown.map((key) => ({ id: key, name: info(key).label }));
     const hidden = HOME_PANELS.filter((p) => !shown.includes(p.key));
@@ -260,8 +269,8 @@ function openHomeEditor() {
             title: info(key).label,
             subtitle: info(key).help,
             trailing: h('span', { class: 'toolbar' },
-              moveButtons(items, i, save),
-              h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Quitar ${info(key).label} de Inicio`, onClick: () => save(shown.filter((k) => k !== key)) }, icon('x'))),
+              moveButtons(items, i, change),
+              h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Quitar ${info(key).label} de Inicio`, onClick: () => change(shown.filter((k) => k !== key)) }, icon('x'))),
           })))
           : h('p', { class: 'caption' }, 'No hay ningún panel. Añade alguno de abajo.')),
       hidden.length
@@ -269,13 +278,14 @@ function openHomeEditor() {
           list(hidden.map((p) => row({
             title: p.label,
             subtitle: p.help,
-            trailing: h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Añadir ${p.label} a Inicio`, onClick: () => save([...shown, p.key]) }, icon('plus')),
+            trailing: h('button', { type: 'button', class: 'icon-btn', 'aria-label': `Añadir ${p.label} a Inicio`, onClick: () => change([...shown, p.key]) }, icon('plus')),
           }))))
         : null,
-      h('button', { type: 'button', class: 'btn', onClick: () => save([...DEFAULT_HOME_PANELS]) }, icon('refresh'), 'Volver a los paneles de siempre'));
+      h('button', { type: 'button', class: 'btn', onClick: () => change([...DEFAULT_HOME_PANELS]) }, icon('refresh'), 'Volver a los paneles de siempre'),
+      h('button', { type: 'button', class: 'btn primary', onClick: save }, 'Guardar'));
   };
   render();
-  openSheet({ title: 'Personalizar Inicio', tall: true, body: content });
+  const sheet = openSheet({ title: 'Personalizar Inicio', tall: true, primary: { label: 'Guardar', onClick: save }, body: content });
 }
 
 export function homeView() {

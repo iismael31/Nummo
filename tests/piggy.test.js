@@ -174,3 +174,24 @@ test('huchas: datos incoherentes se rechazan y los antiguos ganan el panel de In
   const v2 = { ...sampleState(), version: 2, settings: { ...sampleState().settings, homePanels: ['networth', 'budgets', 'recent'] } };
   assert.deepEqual(normalizeData(v2).data.settings.homePanels, ['networth', 'budgets', 'piggies', 'recent']);
 });
+
+test('huchas: una hucha que no suma al total es un ahorro aparte', async () => {
+  await setup();
+  const today = '2026-10-11';
+  const piggy = store.addPiggy({ name: 'Colchón', goal: 60 * E, deadline: '2026-12-31', boxes: [20, 20, 10, 5, 5].map((x) => x * E) }, today);
+  assert.equal(piggy.includeInTotal, true, 'por defecto suma, como antes');
+  const before = summarize(store.getState());
+  store.depositToPiggy(piggy.id, { amount: 30 * E, accountId: 'accountAAA', date: today });
+  assert.equal(summarize(store.getState()).totalPiggies, 30 * E);
+
+  store.updatePiggy(piggy.id, { includeInTotal: false });
+  let state = await reload();
+  let s = summarize(state);
+  assert.equal(s.totalPiggies, 0, 'no aparece en «En huchas»');
+  assert.equal(s.netWorth, before.netWorth - 30 * E, 'lo apartado deja de contar en el patrimonio');
+  assert.equal(netWorthSeries(state, '2026-10', 1).at(-1).value, s.netWorth, 'la gráfica del patrimonio también');
+
+  store.updatePiggy(piggy.id, { includeInTotal: true });
+  s = summarize(store.getState());
+  assert.equal(s.netWorth, before.netWorth, 'al volver a sumarla, todo cuadra');
+});

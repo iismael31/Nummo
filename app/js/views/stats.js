@@ -15,6 +15,7 @@ import { monthInsights, yearInsights } from '../core/insights.js';
 import { showMovementsFor } from './movements.js';
 import { budgetItem, categoryShare } from './shared.js';
 import { insightList } from './insights.js';
+import { showBudget } from './budgets.js';
 
 let mode = 'month'; // 'month' | 'year'
 let monthKey = currentMonthKey();
@@ -92,7 +93,7 @@ function budgetsCard(look, derived) {
         label: 'Crear presupuesto', onClick: () => router.navigate('/mas/presupuestos'),
       }));
   }
-  return list(budgets.map((b) => budgetItem(b, look)));
+  return list(budgets.map((b) => budgetItem(b, look, { onClick: () => showBudget(b.id, monthKey) })));
 }
 
 const modeSwitch = () => segmented([{ value: 'month', label: 'Mes' }, { value: 'year', label: 'Año' }], mode, (value) => {

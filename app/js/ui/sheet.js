@@ -42,13 +42,14 @@ function closeDialog(dialog, done, immediate, openerKey = null) {
 export function openSheet({ title, body, primary = null, tall = false, onClose = null }) {
   const titleId = uid('t');
   const openerKey = focusKey(document.activeElement);
+  const titleEl = h('h2', { class: 'sheet-title', id: titleId, tabindex: '-1' }, title);
   const primaryButton = primary
     ? h('button', { type: 'button', class: 'btn-text strong', onClick: () => primary.onClick() }, primary.label)
     : h('span', { 'aria-hidden': 'true' });
   const dialog = h('dialog', { class: ['sheet', tall && 'tall'], 'aria-labelledby': titleId },
     h('div', { class: 'sheet-head' },
       h('button', { type: 'button', class: 'btn-text', onClick: () => api.close() }, 'Cancelar'),
-      h('h2', { class: 'sheet-title', id: titleId, tabindex: '-1' }, title),
+      titleEl,
       primaryButton),
     h('div', { class: 'sheet-body' }, body));
   let closed = false;
@@ -76,6 +77,8 @@ export function openSheet({ title, body, primary = null, tall = false, onClose =
   });
   document.body.append(dialog);
   dialog.showModal();
+  // El foco empieza en el título: lo lee el lector de pantalla y ningún botón queda marcado.
+  titleEl.focus({ preventScroll: true });
   openSheets.add(api);
   return api;
 }
@@ -92,6 +95,7 @@ function alertDialog({ title, text, actions, input = null, validate = null }) {
     const titleId = uid('a');
     const textId = uid('a');
     const error = h('p', { class: 'error', role: 'alert' });
+    const titleEl = h('h2', { class: 'alert-title', id: titleId, tabindex: '-1' }, title);
     const dialog = h('dialog', { class: 'alert', role: 'alertdialog', 'aria-labelledby': titleId, 'aria-describedby': textId });
     const cancelValue = actions.find((a) => !a.value)?.value ?? false;
     let done = false;
@@ -121,7 +125,7 @@ function alertDialog({ title, text, actions, input = null, validate = null }) {
     }, action.label));
     dialog.append(
       h('div', { class: 'alert-body' },
-        h('h2', { class: 'alert-title', id: titleId }, title),
+        titleEl,
         text ? h('p', { class: 'alert-text', id: textId }, text) : null,
         input,
         error),
@@ -134,8 +138,9 @@ function alertDialog({ title, text, actions, input = null, validate = null }) {
     document.body.append(dialog);
     dialog.showModal();
     openAlerts.add(dismiss);
-    // El foco empieza en «Cancelar»: Intro o Espacio nunca confirman por error una acción grave.
-    (input ?? buttons[0]).focus();
+    // El foco empieza en el título (o en el campo a rellenar), nunca en un botón: Intro o Espacio no
+    // confirman por error una acción grave y no aparece el recuadro de foco sobre «Cancelar».
+    (input ?? titleEl).focus({ preventScroll: true });
   });
 }
 

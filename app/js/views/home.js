@@ -13,7 +13,8 @@ import * as router from '../ui/router.js';
 import { pwa, promptInstall, applyUpdate } from '../ui/pwa.js';
 import * as store from '../core/store.js';
 import { formatMoney, formatSigned } from '../core/money.js';
-import { currentMonthKey, todayISO, addDays, addMonthKey, daysInMonth } from '../core/dates.js';
+import { todayISO, addDays, addMonthKey, diffDays } from '../core/dates.js';
+import { currentPeriod, periodRange, periodRangeText } from '../ui/period.js';
 import { nextDate, isFinished } from '../core/recurring.js';
 import { HOME_PANELS, DEFAULT_HOME_PANELS } from '../core/catalog.js';
 import { openMovementForm } from './movement-form.js';
@@ -95,6 +96,7 @@ const PANELS = {
       h('div', { class: 'card-head' },
         h('span', { class: 'card-title' }, `Este mes · ${monthLabel(monthKey)}`),
         icon('chevron-right', { className: 'icon chev' })),
+      periodRangeText(monthKey) ? h('p', { class: 'caption' }, periodRangeText(monthKey)) : null,
       h('dl', { class: 'kv' },
         kv('Ingresos', formatSigned(month.income), month.income ? 'pos' : ''),
         kv('Gastos', formatSigned(-month.expense)),
@@ -110,10 +112,11 @@ const PANELS = {
   },
 
   pace({ state, derived, monthKey, today }) {
-    const day = Number(today.slice(8, 10));
-    const days = daysInMonth(Number(monthKey.slice(0, 4)), Number(monthKey.slice(5, 7)));
+    const { start, end } = periodRange(monthKey);
+    const day = diffDays(start, today) + 1; // días del mes que llevamos (el mes puede empezar otro día)
+    const days = diffDays(start, end) + 1;
     let spent = 0;
-    for (const m of state.movements) if (m.type === 'expense' && m.date.startsWith(monthKey) && m.date <= today) spent += m.amount;
+    for (const m of state.movements) if (m.type === 'expense' && m.date >= start && m.date <= today) spent += m.amount;
     const perDay = Math.round(spent / day);
     const lastMonth = derived.period(addMonthKey(monthKey, -1)).expense;
     return section({ title: 'Ritmo de gasto' },
@@ -193,7 +196,8 @@ const PANELS = {
   },
 
   topExpenses({ state, monthKey, look }) {
-    const top = state.movements.filter((m) => m.type === 'expense' && m.date.startsWith(monthKey))
+    const { start, end } = periodRange(monthKey);
+    const top = state.movements.filter((m) => m.type === 'expense' && m.date >= start && m.date <= end)
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);
     return section({ title: 'Mayores gastos del mes' },
@@ -290,7 +294,7 @@ function openHomeEditor() {
 
 export function homeView() {
   const state = store.getState();
-  const ctx = { state, derived: store.derived(), look: lookups(state), monthKey: currentMonthKey(), today: todayISO() };
+  const ctx = { state, derived: store.derived(), look: lookups(state), monthKey: currentPeriod(), today: todayISO() };
   const panels = state.settings.homePanels.map((key) => PANELS[key](ctx)).filter(Boolean);
   return {
     title: 'Inicio',

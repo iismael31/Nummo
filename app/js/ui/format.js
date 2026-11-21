@@ -28,6 +28,11 @@ export function shortDate(iso, today = todayISO()) {
   return fmt.format(toLocalDate(iso)).replace('.', '');
 }
 
+/** "24 nov" (sin año). */
+export function dayMonth(iso) {
+  return fmtShort.format(toLocalDate(iso)).replace('.', '');
+}
+
 /** "Octubre 2026" */
 export function monthLabel(key) {
   return `${capitalize(fmtMonthName.format(toLocalDate(`${key}-01`)))} ${key.slice(0, 4)}`;

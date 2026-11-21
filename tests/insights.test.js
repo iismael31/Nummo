@@ -57,7 +57,7 @@ test('insights: el mes en curso (a estas alturas, sin alarmas si aún no has cob
   const list = monthInsights(state, '2026-07', '2026-07-10');
   assert.ok(!find(list, 'overspending') && !find(list, 'saving-rate'), 'sin ingresos todavía no se juzga el ahorro');
   const forecast = find(list, 'budget-forecast');
-  assert.equal(forecast.day, 25, '15.000 / (6.000 / 10 días)');
+  assert.equal(forecast.date, '2026-07-25', '15.000 / (6.000 / 10 días) = día 25');
   assert.equal(forecast.projected, 18600);
   const spend = find(list, 'spend-vs-average');
   assert.equal(spend.current, true);
@@ -82,4 +82,25 @@ test('insights: el año (previsión de ahorro, categoría principal, mejor mes y
   assert.ok(!find(list, 'year-vs-last'), 'sin datos del año anterior no se compara');
   assert.deepEqual(yearInsights(state, '2025', '2026-07-10'), []);
   assert.deepEqual(yearInsights(state, '2027', '2026-07-10'), []);
+});
+
+test('insights: con el mes empezando el día 24, «a estas alturas» cuenta días desde el cobro', () => {
+  const state = sampleState();
+  state.settings.monthStartDay = 24;
+  state.budgets = [{ id: 'budgetFood', name: '', categoryIds: ['catFoodXX'], amount: 40000 }];
+  state.movements = [];
+  for (const month of ['07', '08', '09', '10']) state.movements.push(mov(`2026-${month}-24`, 'income', 200000, 'catSalary'));
+  for (const [start, later] of [['2026-07-25', '2026-08-15'], ['2026-08-25', '2026-09-15'], ['2026-09-25', '2026-10-15']]) {
+    state.movements.push(mov(start, 'expense', 10000, 'catFoodXX'), mov(later, 'expense', 10000, 'catFoodXX'));
+  }
+  state.movements.push(mov('2026-10-25', 'expense', 30000, 'catFoodXX'));
+  // El 2 de noviembre es el día 10 del mes «octubre» (24 oct – 23 nov).
+  const list = monthInsights(state, '2026-10', '2026-11-02');
+  const spend = find(list, 'spend-vs-average');
+  assert.deepEqual([spend.current, spend.spent, spend.average], [true, 30000, 10000], 'los 10 primeros días de cada mes');
+  assert.equal(find(list, 'budget-forecast').date, '2026-11-06', '400 € a 30 € al día: el día 14 del mes');
+  assert.ok(find(list, 'saving-rate'), 'ya ha cobrado: se comenta el ahorro');
+  assert.equal(find(list, 'saving-streak').months, 3, 'julio, agosto y septiembre (del 24 al 23)');
+  assert.deepEqual(monthInsights(state, '2026-11', '2026-11-02'), [], '«noviembre» aún no ha empezado');
+  assert.equal(find(yearInsights(state, '2026', '2026-11-02'), 'year-projection').months, 3);
 });

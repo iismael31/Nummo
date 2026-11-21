@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-11-21 — Inicio del mes configurable (día de cobro)
+
+Tipo: cambio
+
+Qué se hizo:
+- Petición de la persona propietaria: que el mes empiece el día que cobra (p. ej. el 24) o el 1.
+  Decisión suya: el mes se llama como el mes en que empieza (24 nov – 23 dic = «Noviembre»).
+- dates.js: periodStart, periodBounds(key, startDay), periodOf, currentPeriodKey y MONTH_START_DAYS.
+  Días 29–31 se ajustan al último día de los meses cortos, sin huecos ni solapes. El año = sus 12 meses.
+- settings.monthStartDay (1–31, por defecto 1; sin cambio de esquema). finance.monthStartOf lo aplica en
+  resúmenes, categorías, presupuestos, series y patrimonio; insights.js cuenta «a estas alturas» en días
+  desde el inicio del mes y la previsión del presupuesto da una fecha («hacia el 6 nov»).
+- ui/period.js (mes actual y rango «24 nov – 23 dic»). El selector de mes y la tarjeta «Este mes» muestran
+  el rango si el día no es el 1. Inicio (ritmo de gasto, mayores gastos), Análisis, Movimientos,
+  presupuestos y huchas usan el mes de la app.
+- Más → Inicio del mes: cuadrícula de días 1–31 con vista previa del mes actual; al guardar, las vistas
+  vuelven al mes actual.
+
+Por qué:
+Petición de la persona propietaria.
+
+Archivos / recursos afectados:
+- app/js/core/dates.js, model.js, finance.js, insights.js
+- app/js/ui/period.js (nuevo), components.js, format.js
+- app/js/views/more.js, home.js, stats.js, movements.js, budgets.js, piggies.js, insights.js
+- app/css/app.css, tests/dates.test.js, finance.test.js, insights.test.js
+- GUIA-DE-USO.md, DOCUMENTACION-TECNICA.md, to-do.md
+
+Verificación:
+- 89/89 tests (3 nuevos: límites de los meses con 24 y 31, finanzas con mes del 24, comentarios).
+- En el navegador (21 nov, día 24): Más muestra «Día 24»; Inicio, Análisis y Movimientos muestran
+  «Octubre 2026 · 24 oct – 23 nov» con sus cifras; el año lista los meses del 24 al 23; al volver al día 1,
+  el mes actual vuelve a ser noviembre.
+
+---
+
 ## 2026-10-17 — Huchas fuera del total, presupuesto con pestañas, editor de Inicio y foco
 
 Tipo: cambio | incidencia

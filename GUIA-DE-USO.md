@@ -154,6 +154,16 @@ El **análisis** de cada hucha te dice si vas bien según el plan, cuánto te to
 - Se apuntan solos **al abrir la app** cuando llega su fecha.
 - Puedes **pausarlos**. Al reanudarlos no se apuntan las fechas que pasaron durante la pausa.
 
+### Inicio del mes (por ejemplo, el día que cobras)
+
+Si cobras, por ejemplo, el día 24, puedes hacer que tu mes empiece ese día: **Más → Inicio del mes**, elige el **24** y pulsa **Guardar**.
+
+- El mes se llama como el mes en que empieza: con el día 24, **«Noviembre» va del 24 de noviembre al 23 de diciembre**. Debajo del nombre verás siempre las fechas («24 nov – 23 dic»).
+- Lo usan **Inicio** («Este mes», ritmo de gasto, mayores gastos), **Análisis** (mes y año), **Movimientos**, los **presupuestos** (se reinician ese día) y los **comentarios**.
+- El año son sus 12 meses: con el día 24, «2026» va del 24 de enero de 2026 al 23 de enero de 2027.
+- Si eliges un día que algún mes no tiene (29, 30 o 31), ese mes empieza su último día.
+- Para volver a los meses normales, elige el **día 1**. Tus movimientos no cambian: solo cómo se agrupan.
+
 ### Análisis y gráficas
 
 En **Análisis**, elige arriba **Mes** o **Año** y cambia de mes o de año con las flechas.

@@ -358,6 +358,7 @@ button.card { width: 100%; border: 0; text-align: left; color: inherit; }
 .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .month-nav .label { flex: 1; text-align: center; font-size: 17px; font-weight: 600; }
 .month-nav .today { font-size: 13px; font-weight: 500; }
+.month-nav .range { display: block; font-size: 13px; font-weight: 400; color: var(--text-2); }
 .toolbar { display: flex; gap: 8px; align-items: center; }
 .search { position: relative; flex: 1; }
 .search .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-3); pointer-events: none; }
@@ -634,6 +635,9 @@ dialog.alert[open] { animation: alert-in 0.2s ease-out; }
   color: #F2EFEB;
 }
 .app-mark .icon { width: 42px; height: 42px; }
+.day-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.day-grid .day { min-height: 42px; border: 0; border-radius: 10px; background: var(--fill); color: var(--text); font-size: 16px; font-variant-numeric: tabular-nums; }
+.day-grid .day[aria-pressed="true"] { background: var(--accent-fill); color: var(--on-accent); font-weight: 600; }
 .insights { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .insight { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
 .insight .icon { flex: none; width: 20px; height: 20px; margin-top: 1px; color: var(--accent); }

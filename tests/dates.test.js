@@ -1,7 +1,7 @@
 import { test, assert } from './runner.js';
 import {
   daysInMonth, parseISO, isISODate, isMonthKey, addDays, addMonths, addYears, addMonthKey,
-  monthBounds, periodBounds, diffDays, todayISO, monthKey,
+  monthBounds, periodBounds, periodOf, periodStart, currentPeriodKey, diffDays, todayISO, monthKey,
 } from '../app/js/core/dates.js';
 
 test('dates: días por mes y años bisiestos', () => {
@@ -49,4 +49,22 @@ test('dates: claves de mes, límites y diferencias', () => {
   assert.equal(diffDays('2026-03-01', '2026-01-01'), -59);
   assert.equal(todayISO(new Date(2026, 9, 5, 23, 59)), '2026-10-05');
   assert.equal(monthKey('2026-10-05'), '2026-10');
+});
+
+test('dates: meses que empiezan otro día (día de cobro)', () => {
+  assert.deepEqual(periodBounds('2026-11', 24), { start: '2026-11-24', end: '2026-12-23' }, 'noviembre: 24 nov – 23 dic');
+  assert.deepEqual(periodBounds('2026-12', 24), { start: '2026-12-24', end: '2027-01-23' }, 'cruza de año');
+  assert.deepEqual(periodBounds('2026', 24), { start: '2026-01-24', end: '2027-01-23' }, 'el año son sus 12 meses');
+  assert.deepEqual(periodBounds('2026-11', 1), monthBounds('2026-11'), 'con 1, el mes de siempre');
+  assert.deepEqual(periodBounds('2200', 1), { start: '2200-01-01', end: '2200-12-31' }, 'también en el último año');
+  // Día 31: en febrero empieza el último día y no hay huecos ni solapes.
+  assert.equal(periodStart('2027-02', 31), '2027-02-28');
+  assert.deepEqual(periodBounds('2027-01', 31), { start: '2027-01-31', end: '2027-02-27' });
+  assert.deepEqual(periodBounds('2027-02', 31), { start: '2027-02-28', end: '2027-03-30' });
+  assert.equal(periodOf('2026-11-23', 24), '2026-10');
+  assert.equal(periodOf('2026-11-24', 24), '2026-11');
+  assert.equal(periodOf('2027-01-10', 24), '2026-12');
+  assert.equal(periodOf('2027-03-30', 31), '2027-02');
+  assert.equal(currentPeriodKey(24, new Date(2026, 10, 21)), '2026-10', 'el 21 de noviembre aún es el mes de octubre');
+  assert.equal(currentPeriodKey(1, new Date(2026, 10, 21)), '2026-11');
 });

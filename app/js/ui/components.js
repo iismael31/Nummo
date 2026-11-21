@@ -5,7 +5,8 @@ import { icon } from './icons.js';
 import { monthLabel } from './format.js';
 import { COLOR_KEYS, PICKER_ICONS, ICON_LABELS, COLOR_LABELS } from '../core/catalog.js';
 import { parseAmount, centsToInput } from '../core/money.js';
-import { addMonthKey, currentMonthKey, isISODate, MIN_YEAR, MAX_YEAR } from '../core/dates.js';
+import { addMonthKey, isISODate, MIN_YEAR, MAX_YEAR } from '../core/dates.js';
+import { currentPeriod, periodRangeText } from './period.js';
 
 /** Cuadrado de color con símbolo o iniciales. item: { icon, color, letters? } */
 export function tile(item, size = '') {
@@ -246,18 +247,19 @@ export function emptyState(iconName, title, text = null, action = null) {
 }
 
 export function monthNav(key, onChange) {
-  const current = currentMonthKey();
+  const current = currentPeriod();
+  const range = periodRangeText(key); // si el mes empieza otro día: «24 nov – 23 dic»
   return h('div', { class: 'month-nav' },
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Mes anterior', onClick: () => onChange(addMonthKey(key, -1)) }, icon('chevron-left')),
     h('div', { class: 'label' },
-      h('div', { 'aria-live': 'polite' }, monthLabel(key)),
+      h('div', { 'aria-live': 'polite' }, monthLabel(key), range ? h('span', { class: 'range' }, range) : null),
       key !== current ? h('button', { type: 'button', class: 'btn-text today', onClick: () => onChange(current) }, 'Volver al mes actual') : null),
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Mes siguiente', onClick: () => onChange(addMonthKey(key, 1)) }, icon('chevron-right')));
 }
 
 /** Selector de año 'AAAA' con flechas y vuelta al año actual. */
 export function yearNav(year, onChange) {
-  const current = currentMonthKey().slice(0, 4);
+  const current = currentPeriod().slice(0, 4);
   const shift = (n) => onChange(String(Number(year) + n));
   return h('div', { class: 'month-nav' },
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Año anterior', disabled: Number(year) <= MIN_YEAR, onClick: () => shift(-1) }, icon('chevron-left')),

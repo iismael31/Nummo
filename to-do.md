@@ -50,6 +50,9 @@
 
 ## Completados
 
+- [x] 2026-11-21 — Inicio del mes configurable (Más → Inicio del mes): meses del día de cobro al día anterior,
+      nombrados por el mes en que empiezan, en Inicio, Análisis, Movimientos, presupuestos y comentarios.
+
 - [x] 2026-10-17 — Huchas con «Sumar al total» (ahorro aparte); pantalla de cada presupuesto con pestañas
       Movimientos y Configuración; editor de Inicio con Guardar/Cancelar; sin recuadro de foco en «Cancelar».
 

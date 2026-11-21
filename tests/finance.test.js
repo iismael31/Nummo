@@ -100,3 +100,24 @@ test('finance: una deuda pagada de más no reduce el total que debes de las dem�
   assert.equal(s.totalOwe, 20000);
   assert.equal(s.netWorth, 311000 - 20000 + (2500 - 50000), 'el patrimonio sí refleja el pago de más');
 });
+
+test('finance: con el mes empezando el día 24 (resumen, categorías, series y presupuestos)', () => {
+  const state = sampleState();
+  state.settings.monthStartDay = 24;
+  state.movements = [
+    { id: 'movPay0001', date: '2026-09-24', type: 'income', amount: 200000, accountId: 'accountAAA', categoryId: 'catSalary', note: '', ts: 1 },
+    { id: 'movFood001', date: '2026-10-05', type: 'expense', amount: 3000, accountId: 'accountAAA', categoryId: 'catFoodXX', note: '', ts: 2 },
+    { id: 'movFood002', date: '2026-10-23', type: 'expense', amount: 1000, accountId: 'accountAAA', categoryId: 'catFoodXX', note: '', ts: 3 },
+    { id: 'movFun0001', date: '2026-10-24', type: 'expense', amount: 2000, accountId: 'accountAAA', categoryId: 'catFunXXX', note: '', ts: 4 },
+  ];
+  // «Septiembre» va del 24 sep al 23 oct: la nómina y los dos gastos de comida.
+  const september = periodSummary(state, '2026-09');
+  assert.deepEqual([september.income, september.expense], [200000, 4000]);
+  assert.equal(periodSummary(state, '2026-10').expense, 2000, 'el ocio del 24 de octubre ya es de «octubre»');
+  assert.deepEqual(totalsByCategory(state, '2026-09'), [{ categoryId: 'catFoodXX', amount: 4000 }]);
+  assert.deepEqual(monthlySeries(state, '2026-10', 2).map((m) => [m.month, m.income, m.expense]), [['2026-09', 200000, 4000], ['2026-10', 0, 2000]]);
+  assert.equal(budgetStatus(state, '2026-10').find((b) => b.id === 'budgetFun').spent, 2000);
+  assert.equal(budgetStatus(state, '2026-09').find((b) => b.id === 'budgetFun').spent, 0);
+  const series = netWorthSeries(state, '2026-10', 2);
+  assert.equal(series[0].value - series[1].value, 2000, 'el patrimonio se cierra el día 23');
+});

@@ -92,8 +92,42 @@ export function monthBounds(key) {
 /** Un periodo es un mes 'AAAA-MM' o un año 'AAAA'. */
 export const isYearKey = (key) => /^\d{4}$/.test(key);
 
-export function periodBounds(key) {
-  return isYearKey(key) ? { start: `${key}-01-01`, end: `${key}-12-31` } : monthBounds(key);
+// --- Meses que empiezan otro día (p. ej. el de cobro) ----------------------------------------------
+// Con `startDay` = 24, el mes 'AAAA-11' va del 24 de noviembre al 23 de diciembre: se llama como el
+// mes en que empieza. Si el mes no tiene ese día (31 en febrero), empieza el último. Con 1, son los
+// meses de calendario de siempre.
+
+export const MONTH_START_DAYS = 31;
+
+/** Primer día del mes 'AAAA-MM' de la app. */
+export function periodStart(key, startDay = 1) {
+  const [y, m] = key.split('-').map(Number);
+  return toISO(y, m, Math.min(startDay, daysInMonth(y, m)));
+}
+
+/** Día anterior al primero del mes `key` (sin pasar por addDays: vale también fuera de MAX_YEAR). */
+function dayBeforeStart(key, startDay) {
+  const [y, m] = key.split('-').map(Number);
+  const first = Math.min(startDay, daysInMonth(y, m));
+  if (first > 1) return toISO(y, m, first - 1);
+  const [py, pm] = addMonthKey(key, -1).split('-').map(Number);
+  return toISO(py, pm, daysInMonth(py, pm));
+}
+
+/** Primer y último día de un mes 'AAAA-MM' o de un año 'AAAA' (sus 12 meses) de la app. */
+export function periodBounds(key, startDay = 1) {
+  if (isYearKey(key)) return { start: periodStart(`${key}-01`, startDay), end: dayBeforeStart(`${Number(key) + 1}-01`, startDay) };
+  return { start: periodStart(key, startDay), end: dayBeforeStart(addMonthKey(key, 1), startDay) };
+}
+
+/** Mes 'AAAA-MM' de la app al que pertenece una fecha. */
+export function periodOf(iso, startDay = 1) {
+  const key = monthKey(iso);
+  return iso < periodStart(key, startDay) ? addMonthKey(key, -1) : key;
+}
+
+export function currentPeriodKey(startDay = 1, now = new Date()) {
+  return periodOf(todayISO(now), startDay);
 }
 
 /** Objeto Date a mediodía local (para formatear con Intl sin sorpresas de horario de verano). */

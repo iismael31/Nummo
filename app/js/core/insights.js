@@ -1,9 +1,11 @@
 // Comentarios automáticos sobre los gastos, el ahorro y los presupuestos (como los consejos de las
 // huchas). Funciones puras: devuelven datos ({ kind, level, … }) y la vista pone el texto.
 // level: 'warn' (conviene mirarlo), 'good' (buena noticia) o 'info'. Primero van los 'warn'.
+// Los «meses» son los de la app: si empiezan otro día (p. ej. el 24), «el día 5 del mes» es el quinto
+// día desde que empezó, y «a estas alturas» compara el mismo número de días.
 
-import { addMonthKey, daysInMonth, monthKey } from './dates.js';
-import { budgetStatus } from './finance.js';
+import { addMonthKey, addDays, diffDays, periodBounds, periodOf } from './dates.js';
+import { budgetStatus, monthStartOf } from './finance.js';
 
 const AVG_MONTHS = 3; // meses anteriores con los que se compara un mes
 const UNUSUAL_MONTHS = 6; // meses anteriores para saber cuánto sueles gastar en cada categoría
@@ -21,9 +23,6 @@ const MIN_DAYS = 5; // los primeros días del mes hay muy poco para comparar o p
 const MIN_AVERAGE = 1000; // no se comparan porcentajes sobre medias de menos de 10 €
 const LEVELS = { warn: 0, good: 1, info: 2 };
 
-const parts = (key) => [Number(key.slice(0, 4)), Number(key.slice(5, 7))];
-const lengthOf = (key) => daysInMonth(...parts(key));
-const day = (iso) => Number(iso.slice(8, 10));
 const mean = (values) => values.reduce((sum, v) => sum + v, 0) / values.length;
 const byLevel = (list) => list.sort((a, b) => LEVELS[a.level] - LEVELS[b.level]);
 
@@ -33,25 +32,32 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
-/** Gastos (movimientos) e ingresos (total) de cada mes pedido, en una sola pasada. */
+/**
+ * Gastos e ingresos (total) de cada mes pedido, en una sola pasada. Cada gasto lleva `day`: el día
+ * del mes de la app en que cae (1 = el primero). Cada mes lleva su primer día y su número de días.
+ */
 function groupByMonth(state, keys) {
-  const months = new Map(keys.map((k) => [k, { expenses: [], income: 0 }]));
+  const startDay = monthStartOf(state);
+  const months = new Map(keys.map((k) => {
+    const { start, end } = periodBounds(k, startDay);
+    return [k, { start, length: diffDays(start, end) + 1, expenses: [], income: 0 }];
+  }));
   for (const m of state.movements) {
     if (m.type !== 'expense' && m.type !== 'income') continue;
-    const month = months.get(monthKey(m.date));
+    const month = months.get(periodOf(m.date, startDay));
     if (!month) continue;
-    if (m.type === 'expense') month.expenses.push(m);
+    if (m.type === 'expense') month.expenses.push({ m, day: diffDays(month.start, m.date) + 1 });
     else month.income += m.amount;
   }
   return months;
 }
 
 /** Total y reparto por categoría de unos gastos hasta un día del mes (incluido). */
-function spending(expenses, upToDay = 31) {
+function spending(expenses, upToDay = Infinity) {
   const byCategory = new Map();
   let total = 0;
-  for (const m of expenses) {
-    if (day(m.date) > upToDay) continue;
+  for (const { m, day } of expenses) {
+    if (day > upToDay) continue;
     total += m.amount;
     byCategory.set(m.categoryId, (byCategory.get(m.categoryId) ?? 0) + m.amount);
   }
@@ -95,20 +101,21 @@ function categoryChanges(current, reference, minDiff) {
  * alturas»: lo de este mes hasta hoy con lo de los meses anteriores hasta el mismo día.
  */
 export function monthInsights(state, key, today) {
-  const current = monthKey(today) === key;
-  if (key > monthKey(today)) return [];
-  const upTo = current ? day(today) : lengthOf(key);
+  const todayKey = periodOf(today, monthStartOf(state));
+  const current = todayKey === key;
+  if (key > todayKey) return [];
   const previous = Array.from({ length: Math.max(UNUSUAL_MONTHS, STREAK_MONTHS) }, (_, i) => addMonthKey(key, -(i + 1)));
   const months = groupByMonth(state, [key, ...previous]);
   const month = months.get(key);
   if (!hasData(month)) return [];
+  const upTo = current ? diffDays(month.start, today) + 1 : month.length; // días del mes que cuentan
   const insights = [];
 
   // --- Gastos: el mes frente a la media de los anteriores (solo meses en los que ya usabas la app).
   const now = spending(month.expenses, upTo);
   const referenceKeys = previous.slice(0, AVG_MONTHS).filter((k) => hasData(months.get(k)));
   if (referenceKeys.length && upTo >= MIN_DAYS) {
-    const limit = (k) => (current ? Math.min(upTo, lengthOf(k)) : lengthOf(k));
+    const limit = (k) => (current ? Math.min(upTo, months.get(k).length) : months.get(k).length);
     const past = referenceKeys.map((k) => spending(months.get(k).expenses, limit(k)));
     const average = Math.round(mean(past.map((p) => p.total)));
     if (average >= MIN_AVERAGE) {
@@ -125,8 +132,8 @@ export function monthInsights(state, key, today) {
 
   // --- Gastos hormiga: muchos gastos pequeños en una misma categoría.
   const small = new Map();
-  for (const m of month.expenses) {
-    if (m.amount > SMALL_EXPENSE || day(m.date) > upTo) continue;
+  for (const { m, day } of month.expenses) {
+    if (m.amount > SMALL_EXPENSE || day > upTo) continue;
     const s = small.get(m.categoryId) ?? { count: 0, total: 0 };
     s.count += 1;
     s.total += m.amount;
@@ -138,15 +145,15 @@ export function monthInsights(state, key, today) {
   // --- Un gasto fuera de lo normal para su categoría.
   const samples = new Map();
   for (const k of previous.slice(0, UNUSUAL_MONTHS)) {
-    for (const m of months.get(k).expenses) {
+    for (const { m } of months.get(k).expenses) {
       if (!samples.has(m.categoryId)) samples.set(m.categoryId, []);
       samples.get(m.categoryId).push(m.amount);
     }
   }
   let unusual = null;
-  for (const m of month.expenses) {
+  for (const { m, day } of month.expenses) {
     const list = samples.get(m.categoryId);
-    if (day(m.date) > upTo || m.amount < UNUSUAL_MIN || !list || list.length < UNUSUAL_MIN_SAMPLES) continue;
+    if (day > upTo || m.amount < UNUSUAL_MIN || !list || list.length < UNUSUAL_MIN_SAMPLES) continue;
     const typical = median(list);
     if (m.amount >= typical * UNUSUAL_FACTOR && (!unusual || m.amount / typical > unusual.amount / unusual.typical)) {
       unusual = { kind: 'unusual', level: 'info', movementId: m.id, categoryId: m.categoryId, amount: m.amount, date: m.date, note: m.note, typical };
@@ -180,10 +187,10 @@ export function monthInsights(state, key, today) {
         continue;
       }
       const perDay = b.spent / upTo;
-      const projected = Math.round(perDay * lengthOf(key));
+      const projected = Math.round(perDay * month.length);
       if (upTo >= MIN_DAYS && perDay > 0 && projected > b.amount) {
-        const crossing = Math.min(lengthOf(key), Math.max(upTo + 1, Math.ceil(b.amount / perDay)));
-        alerts.push({ kind: 'budget-forecast', level: 'warn', budget: b, day: crossing, projected, urgency: crossing });
+        const crossing = Math.min(month.length, Math.max(upTo + 1, Math.ceil(b.amount / perDay)));
+        alerts.push({ kind: 'budget-forecast', level: 'warn', budget: b, date: addDays(month.start, crossing - 1), projected, urgency: crossing });
       }
     }
     alerts.sort((a, b) => a.urgency - b.urgency);
@@ -199,10 +206,11 @@ export function monthInsights(state, key, today) {
 
 /** Comentarios de un año 'AAAA' visto el día `today` (el año en curso, hasta hoy). */
 export function yearInsights(state, year, today) {
-  const thisYear = today.slice(0, 4);
+  const todayKey = periodOf(today, monthStartOf(state));
+  const thisYear = todayKey.slice(0, 4);
   if (year > thisYear) return [];
   const current = year === thisYear;
-  const elapsed = current ? Number(today.slice(5, 7)) : 12; // meses del año con algo que mirar
+  const elapsed = current ? Number(todayKey.slice(5, 7)) : 12; // meses del año con algo que mirar
   const keysOf = (y, count) => Array.from({ length: count }, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`);
   const lastYear = String(Number(year) - 1);
   const keys = keysOf(year, elapsed);
@@ -213,7 +221,8 @@ export function yearInsights(state, year, today) {
   const insights = [];
 
   // Mismo periodo del año anterior: los meses ya cerrados y el actual hasta el mismo día.
-  const lastDay = (k) => (current && k === keys.at(-1) ? day(today) : 31);
+  const todayInMonth = diffDays(months.get(todayKey)?.start ?? today, today) + 1;
+  const lastDay = (k) => (current && k === keys.at(-1) ? todayInMonth : Infinity);
   const sumYear = (y) => {
     let income = 0;
     let expense = 0;

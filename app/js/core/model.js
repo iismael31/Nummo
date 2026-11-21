@@ -3,7 +3,7 @@
 
 import { newId, isId } from './ids.js';
 import { isCents } from './money.js';
-import { isISODate } from './dates.js';
+import { isISODate, MONTH_START_DAYS } from './dates.js';
 import { cleanText, cleanLetters } from './text.js';
 import {
   COLOR_KEYS, PICKER_ICONS, ACCOUNT_TYPE_KEYS, accountTypeInfo,
@@ -225,6 +225,8 @@ export function normalizeSettings(raw) {
     lastBackupAt: Number.isSafeInteger(s.lastBackupAt) && s.lastBackupAt > 0 ? s.lastBackupAt : null,
     lastAccountId: isId(s.lastAccountId) ? s.lastAccountId : null,
     installHintDismissed: s.installHintDismissed === true,
+    // Día en que empieza el mes de la app (p. ej. el de cobro); 1 = meses de calendario.
+    monthStartDay: Number.isInteger(s.monthStartDay) && s.monthStartDay >= 1 && s.monthStartDay <= MONTH_START_DAYS ? s.monthStartDay : 1,
     // Paneles visibles en Inicio, en orden (solo claves conocidas y sin repetir).
     homePanels: Array.isArray(s.homePanels)
       ? [...new Set(s.homePanels.filter((key) => HOME_PANEL_KEYS.includes(key)))]

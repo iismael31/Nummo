@@ -10,7 +10,8 @@ import { registerViewReset } from '../ui/session.js';
 import * as router from '../ui/router.js';
 import * as store from '../core/store.js';
 import { formatMoney, formatSigned } from '../core/money.js';
-import { currentMonthKey, isYearKey, todayISO } from '../core/dates.js';
+import { isYearKey, todayISO } from '../core/dates.js';
+import { currentPeriod } from '../ui/period.js';
 import { monthInsights, yearInsights } from '../core/insights.js';
 import { showMovementsFor } from './movements.js';
 import { budgetItem, categoryShare } from './shared.js';
@@ -18,18 +19,18 @@ import { insightList } from './insights.js';
 import { showBudget } from './budgets.js';
 
 let mode = 'month'; // 'month' | 'year'
-let monthKey = currentMonthKey();
+let monthKey = currentPeriod();
 let year = monthKey.slice(0, 4);
 let breakdown = 'expense';
 registerViewReset(() => {
   mode = 'month';
-  monthKey = currentMonthKey();
+  monthKey = currentPeriod();
   year = monthKey.slice(0, 4);
   breakdown = 'expense';
 });
 
 /** Abre Análisis en un mes 'AAAA-MM' o en un año 'AAAA' (p. ej. desde Inicio). */
-export function showStatsFor(key = currentMonthKey()) {
+export function showStatsFor(key = currentPeriod()) {
   if (isYearKey(key)) {
     mode = 'year';
     year = key;
@@ -46,7 +47,7 @@ const stat = (label, value, className = '') => h('div', { class: 'stat' },
 
 /** Meses del año que cuentan para la media: hasta el actual si es este año, los 12 si ya pasó. */
 function monthsElapsed(y) {
-  const current = currentMonthKey();
+  const current = currentPeriod();
   if (y < current.slice(0, 4)) return 12;
   if (y > current.slice(0, 4)) return 0;
   return Number(current.slice(5, 7));

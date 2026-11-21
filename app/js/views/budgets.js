@@ -15,7 +15,7 @@ import * as router from '../ui/router.js';
 import * as store from '../core/store.js';
 import { ValidationError, LIMITS } from '../core/model.js';
 import { formatMoney, centsToInput } from '../core/money.js';
-import { currentMonthKey, monthBounds } from '../core/dates.js';
+import { currentPeriod, periodRange, monthStartDay } from '../ui/period.js';
 import { BUDGET_WARN_RATIO } from '../core/finance.js';
 import { budgetItem, budgetName, compareNewest, movementRow } from './shared.js';
 import { openCategoryForm } from './categories.js';
@@ -28,14 +28,14 @@ registerViewReset(() => {
 });
 
 /** Abre la pantalla de un presupuesto (en «Movimientos», en el mes indicado). */
-export function showBudget(id, month = currentMonthKey()) {
+export function showBudget(id, month = currentPeriod()) {
   detail = { id, tab: 'movements', month, draft: null };
   router.navigate(`/mas/presupuestos/${id}`);
 }
 
 export function budgetsView() {
   const look = lookups(store.getState());
-  const monthKey = currentMonthKey();
+  const monthKey = currentPeriod();
   const statuses = store.derived().budgets(monthKey);
   const total = statuses.find((b) => b.categoryIds === null);
   const byCategories = statuses.filter((b) => b.categoryIds !== null);
@@ -45,7 +45,7 @@ export function budgetsView() {
     title: 'Presupuestos',
     back: { label: 'Más', path: '/mas' },
     body: [
-      h('p', { class: 'caption' }, `Límites que se reinician cada mes. Datos de ${monthLabel(monthKey)}. Te aviso al llegar al ${Math.round(BUDGET_WARN_RATIO * 100)} %. Toca uno para ver sus gastos.`),
+      h('p', { class: 'caption' }, `Límites que se reinician cada mes${monthStartDay() === 1 ? '' : ` (el día ${monthStartDay()})`}. Datos de ${monthLabel(monthKey)}. Te aviso al llegar al ${Math.round(BUDGET_WARN_RATIO * 100)} %. Toca uno para ver sus gastos.`),
       section({ title: 'Total del mes' },
         total
           ? list([item(total)])
@@ -149,7 +149,7 @@ function openBudgetForm({ total = false } = {}) {
 function movementsTab(budget, look) {
   const { month } = detail;
   const status = store.derived().budgets(month).find((b) => b.id === budget.id);
-  const { start, end } = monthBounds(month);
+  const { start, end } = periodRange(month);
   const movements = store.getState().movements
     .filter((m) => m.type === 'expense' && m.date >= start && m.date <= end && (budget.categoryIds === null || budget.categoryIds.includes(m.categoryId)))
     .sort(compareNewest);
@@ -201,7 +201,7 @@ export function budgetDetailView({ id }) {
   const state = store.getState();
   const budget = state.budgets.find((b) => b.id === id);
   if (!budget) return null;
-  if (detail?.id !== id) detail = { id, tab: 'movements', month: currentMonthKey(), draft: null };
+  if (detail?.id !== id) detail = { id, tab: 'movements', month: currentPeriod(), draft: null };
   const look = lookups(state);
   return {
     title: budgetName(budget, look),

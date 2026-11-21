@@ -1,7 +1,7 @@
 // Cálculos derivados: saldos, deudas, resúmenes mensuales, presupuestos y series para gráficas.
 // Funciones puras: leen el estado y nunca lo modifican. Todas son de una sola pasada, O(n).
 
-import { addMonthKey, monthBounds, monthKey, periodBounds } from './dates.js';
+import { addMonthKey, periodBounds, periodOf } from './dates.js';
 import { piggyStatuses } from './piggy.js';
 
 /**
@@ -14,6 +14,9 @@ export function debtAccountSign(debtKind, flow) {
 }
 
 const debtKinds = (state) => new Map(state.debts.map((d) => [d.id, d.kind]));
+
+/** Día en que empieza el mes de la app (los meses pueden ir, p. ej., del 24 al 23). */
+export const monthStartOf = (state) => state.settings?.monthStartDay ?? 1;
 
 /** Cambios de saldo que produce un movimiento: lista de [cuentaId, céntimos]. */
 export function accountEffects(m, debtKindById) {
@@ -90,7 +93,7 @@ export function summarize(state, piggies = piggyStatuses(state)) {
  * transferencias no cuentan.
  */
 export function periodSummary(state, key) {
-  const { start, end } = periodBounds(key);
+  const { start, end } = periodBounds(key, monthStartOf(state));
   const kinds = debtKinds(state);
   let income = 0;
   let expense = 0;
@@ -110,7 +113,7 @@ export function periodSummary(state, key) {
 
 /** Total por categoría en un mes o un año, de mayor a menor. type: 'expense' | 'income'. */
 export function totalsByCategory(state, key, type = 'expense') {
-  const { start, end } = periodBounds(key);
+  const { start, end } = periodBounds(key, monthStartOf(state));
   const totals = new Map();
   for (const m of state.movements) {
     if (m.type !== type || m.date < start || m.date > end) continue;
@@ -143,9 +146,10 @@ export function monthlySeries(state, endKey, count) {
   const months = monthRange(endKey, count);
   const index = new Map(months.map((k, i) => [k, i]));
   const series = months.map((month) => ({ month, income: 0, expense: 0 }));
+  const startDay = monthStartOf(state);
   for (const m of state.movements) {
     if (m.type !== 'income' && m.type !== 'expense') continue;
-    const i = index.get(monthKey(m.date));
+    const i = index.get(periodOf(m.date, startDay));
     if (i !== undefined) series[i][m.type] += m.amount;
   }
   return series;
@@ -173,7 +177,7 @@ export function netWorthSeries(state, endKey, count) {
   const series = [];
   let j = 0;
   for (const month of months) {
-    const { end } = monthBounds(month);
+    const { end } = periodBounds(month, monthStartOf(state));
     while (j < deltas.length && deltas[j][0] <= end) value += deltas[j++][1];
     series.push({ month, value });
   }

@@ -16,7 +16,8 @@ import * as router from '../ui/router.js';
 import * as store from '../core/store.js';
 import { ValidationError, LIMITS } from '../core/model.js';
 import { formatEuros, parseAmount } from '../core/money.js';
-import { todayISO, addDays, addYears, diffDays, currentMonthKey, addMonthKey } from '../core/dates.js';
+import { todayISO, addDays, addYears, diffDays, addMonthKey } from '../core/dates.js';
+import { currentPeriod } from '../ui/period.js';
 import {
   DENOMINATIONS, DEFAULT_DENOMINATIONS, BOX_PRESETS, planBoxes, autoBigCount, bigRange, goalRange,
   chooseBoxes, groupBoxes, analyzePiggy,
@@ -54,7 +55,7 @@ const signedEuros = (cents) => `${cents < 0 ? '−' : '+'}${formatEuros(Math.rou
  * Media de ingresos menos gastos de los 3 meses anteriores (solo los que tienen movimientos).
  */
 function moneyContext(state, derived) {
-  const month = currentMonthKey();
+  const month = currentPeriod();
   const nets = [1, 2, 3]
     .map((i) => derived.period(addMonthKey(month, -i)))
     .filter((p) => p.income || p.expense)

@@ -54,7 +54,7 @@ export function insightText(i, look) {
     case 'budget-over':
       return `Ya te has pasado de «${budgetName(i.budget, look)}» en ${formatEuros(i.over)}.`;
     case 'budget-forecast':
-      return `A este ritmo superarás «${budgetName(i.budget, look)}» hacia el día ${i.day} (acabarías el mes en unos ${formatEuros(i.projected)} de ${formatEuros(i.budget.amount)}).`;
+      return `A este ritmo superarás «${budgetName(i.budget, look)}» hacia el ${shortDate(i.date)} (acabarías el mes en unos ${formatEuros(i.projected)} de ${formatEuros(i.budget.amount)}).`;
     case 'budgets-ok':
       return i.count === 1 ? 'Vas bien con tu presupuesto: a este ritmo no te pasarás.' : `Vas bien con tus ${i.count} presupuestos: a este ritmo no te pasarás de ninguno.`;
     case 'budgets-past':

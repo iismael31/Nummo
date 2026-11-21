@@ -10,7 +10,7 @@ import { registerViewReset } from '../ui/session.js';
 import * as router from '../ui/router.js';
 import * as store from '../core/store.js';
 import { formatSigned, centsToInput } from '../core/money.js';
-import { currentMonthKey, monthBounds } from '../core/dates.js';
+import { currentPeriod, periodRange } from '../ui/period.js';
 import { foldText } from '../core/text.js';
 import { openMovementForm } from './movement-form.js';
 import { compareNewest, movementRow } from './shared.js';
@@ -20,17 +20,17 @@ const SEARCH_DELAY_MS = 150;
 const NO_FILTERS = { type: null, accountId: null, categoryId: null };
 const TYPE_LABELS = { expense: 'Gastos', income: 'Ingresos', transfer: 'Transferencias', debt: 'Deudas', piggy: 'Huchas' };
 
-let monthKey = currentMonthKey();
+let monthKey = currentPeriod();
 let filters = { ...NO_FILTERS };
 let query = '';
 registerViewReset(() => {
-  monthKey = currentMonthKey();
+  monthKey = currentPeriod();
   filters = { ...NO_FILTERS };
   query = '';
 });
 
 /** Abre la lista con filtros (p. ej. desde una cuenta del Inicio o una categoría de Análisis). */
-export function showMovementsFor(filter, month = currentMonthKey()) {
+export function showMovementsFor(filter, month = currentPeriod()) {
   filters = { ...NO_FILTERS, ...filter };
   query = '';
   monthKey = month;
@@ -57,7 +57,7 @@ function results(state, look) {
   const q = foldText(query.trim());
   let items = state.movements;
   if (!q) {
-    const { start, end } = monthBounds(monthKey);
+    const { start, end } = periodRange(monthKey);
     items = items.filter((m) => m.date >= start && m.date <= end);
   }
   if (filters.type) items = items.filter((m) => m.type === filters.type);
